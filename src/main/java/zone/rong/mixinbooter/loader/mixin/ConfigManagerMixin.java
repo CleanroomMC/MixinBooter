@@ -23,7 +23,9 @@ public class ConfigManagerMixin {
     private static void processMixinLoaders(ASMDataTable data, CallbackInfo ci) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         MixinBooterPlugin.LOGGER.info("Instantiating all MixinLoader annotated classes...");
         for (ASMDataTable.ASMData asmData : data.getAll(MixinLoader.class.getName())) {
-            Class.forName(asmData.getClassName()).newInstance();
+            Class<?> clazz = Class.forName(asmData.getClassName());
+            MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
+            clazz.newInstance();
         }
         MixinBooterPlugin.LOGGER.info("Preparing newly added mixin configs...");
         try {
