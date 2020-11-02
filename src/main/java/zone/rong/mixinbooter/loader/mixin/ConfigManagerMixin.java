@@ -19,7 +19,7 @@ import java.lang.reflect.Method;
 @Mixin(ConfigManager.class)
 public class ConfigManagerMixin {
 
-    @Inject(method = "loadData", at = @At("TAIL"))
+    @Inject(method = "loadData", at = @At("TAIL"), remap = false)
     private static void processMixinLoaders(ASMDataTable data, CallbackInfo ci) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         MixinBooterPlugin.LOGGER.info("Instantiating all MixinLoader annotated classes...");
         for (ASMDataTable.ASMData asmData : data.getAll(MixinLoader.class.getName())) {

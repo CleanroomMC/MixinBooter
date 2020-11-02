@@ -15,13 +15,13 @@ import java.util.List;
 @Mixin(LoadController.class)
 public class LoadControllerMixin {
 
-    @Shadow private Loader loader;
+    @Shadow(remap = false) private Loader loader;
 
     static {
         MixinBooterPlugin.LOGGER.info("LoadController loaded, due to unexplainable reasons, we cannot mixin into Loader reliably.");
     }
 
-    @Redirect(method = "buildModList", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z"))
+    @Redirect(method = "buildModList", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z", remap = false), remap = false)
     private <M> boolean whileAddingMods(List<M> list, M container) throws MalformedURLException {
         this.loader.getModClassLoader().addFile(((ModContainer) container).getSource());
         return list.add(container);
