@@ -7,4 +7,5 @@ To use:
 2. Annotate a class with zone.rong.mixinbooter.MixinLoader annotation. Anything in the constructor of this class will be instantiated at the appropriate time. 
 
 Note 1: Still load any of your vanilla, forge mixins within your IFMLLoadingPlugin implementation.
+
 Note 2: No need to call MixinBootstrap.init()
