@@ -1,0 +1,15 @@
+{
+  "package": "zone.rong.mixinbooter.loader.mixin",
+  "required": true,
+  "refmap": "mixins.mixinbooter.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.6",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ConfigManagerMixin",
+    "LoadControllerMixin"
+  ],
+  "injectors": {
+    "maxShiftBy": 10
+  }
+}

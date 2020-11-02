@@ -1,0 +1,103 @@
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+    }
+}
+        
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+
+version = '1.0'
+group = 'zone.rong.mixinbooter' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = 'mixinbooter'
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+minecraft {
+	version = "1.12.2-14.23.5.2847"
+    runDir = "run"
+    mappings = "snapshot_20171003"
+    def args = [
+            '-Dfml.coreMods.load=zone.rong.mixinbooter.MixinBooterPlugin',
+            '-Dmixin.hotSwap=true',
+            '-Dmixin.checks.interfaces=true'
+    ]
+    clientJvmArgs.addAll(args)
+    serverJvmArgs.addAll(args)
+    makeObfSourceJar = false
+}
+
+configurations {
+    embed
+    implementation.extendsFrom(embed)
+}
+
+repositories {
+    maven {
+        url "https://repo.spongepowered.org/maven"
+    }
+}
+
+dependencies {
+    implementation ("org.spongepowered:mixin:0.8.1-SNAPSHOT") {
+        exclude module: "asm-commons"
+        exclude module: "asm-tree"
+        exclude module: "launchwrapper"
+        exclude module: "guava"
+        exclude module: "log4j-core"
+        exclude module: "gson"
+        exclude module: "commons-io"
+    }
+}
+
+// Example for how to get properties into the manifest for reading by the runtime..
+jar {
+    from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude 'LICENSE.txt', 'META-INF/MANIFSET.MF', 'META-INF/maven/**', 'META-INF/*.RSA', 'META-INF/*.SF'
+    }
+    manifest {
+        attributes([
+                "FMLCorePluginContainsFMLMod": false,
+                "FMLCorePlugin": 'zone.rong.mixinbooter.MixinBooterPlugin',
+                "ForceLoadAsMod": true,
+                "TweakClass": 'org.spongepowered.asm.launch.MixinTweaker'
+        ])
+    }
+}
+
+sourceSets {
+    main {
+        ext.refMap = "mixins.mixinbooter.refmap.json"
+    }
+}
+
+jar.finalizedBy('reobfJar')
+
+processResources {
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+
+        // replace version and mcversion
+        expand 'version':project.version, 'mcversion':project.minecraft.version
+    }
+
+    // copy everything else except the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
