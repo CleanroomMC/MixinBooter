@@ -49,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    implementation ("org.spongepowered:mixin:0.8.1-SNAPSHOT") {
+    embed ("org.spongepowered:mixin:0.8.1-SNAPSHOT") {
         exclude module: "asm-commons"
         exclude module: "asm-tree"
         exclude module: "launchwrapper"
