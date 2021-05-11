@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Mixins;
 
 import java.util.Map;
 
+@IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.MCVersion(ForgeVersion.mcVersion)
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 10000)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
@@ -18,10 +19,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     static {
         LOGGER.info("MixinBootstrap Initializing...");
         MixinBootstrap.init();
-        addConfig();
-    }
-
-    private static void addConfig() {
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
     }
 
