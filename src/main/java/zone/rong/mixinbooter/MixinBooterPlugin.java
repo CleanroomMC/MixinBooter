@@ -1,6 +1,7 @@
 package zone.rong.mixinbooter;
 
 import net.minecraftforge.common.ForgeVersion;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,6 +13,7 @@ import java.util.Map;
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.MCVersion(ForgeVersion.mcVersion)
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 10000)
+@Mod(modid = "mixinbooter", name = "MixinBooter", version = "2.0")
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
