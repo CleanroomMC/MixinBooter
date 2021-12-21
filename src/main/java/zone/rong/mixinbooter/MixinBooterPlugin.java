@@ -1,7 +1,10 @@
 package zone.rong.mixinbooter;
 
+import com.google.common.eventbus.EventBus;
 import net.minecraftforge.common.ForgeVersion;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.DummyModContainer;
+import net.minecraftforge.fml.common.LoadController;
+import net.minecraftforge.fml.common.ModMetadata;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,7 +16,6 @@ import java.util.Map;
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.MCVersion(ForgeVersion.mcVersion)
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 10000)
-@Mod(modid = "mixinbooter", name = "MixinBooter", version = "2.0")
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
@@ -31,7 +33,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     @Override
     public String getModContainerClass() {
-        return null;
+        return "zone.rong.mixinbooter.MixinBooterPlugin$Container";
     }
 
     @Override
@@ -46,4 +48,26 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     public String getAccessTransformerClass() {
         return null;
     }
+
+    public static class Container extends DummyModContainer {
+
+        public Container() {
+            super(new ModMetadata());
+            ModMetadata meta = this.getMetadata();
+            meta.modId = "mixinbooter";
+            meta.name = "MixinBooter";
+            meta.description = "A library mod that helps out modders that want to mixin into mods but couldn't as they weren't inherently coremods.";
+            meta.version = "3.0";
+            meta.logoFile = "/icon.png";
+            meta.authorList.add("Rongmario");
+        }
+
+        @Override
+        public boolean registerBus(EventBus bus, LoadController controller) {
+            bus.register(this);
+            return true;
+        }
+
+    }
+
 }

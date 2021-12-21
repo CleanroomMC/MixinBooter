@@ -17,7 +17,7 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '2.0'
+version = '3.0'
 group = 'zone.rong.mixinbooter' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'mixinbooter'
 
@@ -49,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    embed ("org.spongepowered:mixin:0.8.1-SNAPSHOT") {
+    embed ("org.spongepowered:mixin:0.8.5-SNAPSHOT") {
         exclude module: "asm-commons"
         exclude module: "asm-tree"
         exclude module: "launchwrapper"
@@ -62,9 +62,6 @@ dependencies {
 
 // Example for how to get properties into the manifest for reading by the runtime..
 jar {
-    from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
-        exclude 'LICENSE.txt', 'META-INF/MANIFSET.MF', 'META-INF/maven/**', 'META-INF/*.RSA', 'META-INF/*.SF'
-    }
     manifest {
         attributes([
                 "FMLCorePluginContainsFMLMod": false,
@@ -80,8 +77,6 @@ sourceSets {
         ext.refMap = "mixins.mixinbooter.refmap.json"
     }
 }
-
-jar.finalizedBy('reobfJar')
 
 processResources {
     // this will ensure that this task is redone when the versions change.
