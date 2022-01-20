@@ -17,7 +17,7 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '3.1'
+version = '3.2'
 group = 'zone.rong.mixinbooter' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = '.mixinbooter'
 
@@ -50,7 +50,7 @@ repositories {
 }
 
 dependencies {
-    embed ("org.spongepowered:mixin:0.8.5") {
+    embed ("org.spongepowered:mixin:0.8.3") {
         exclude module: "asm-commons"
         exclude module: "asm-tree"
         exclude module: "launchwrapper"
@@ -59,7 +59,7 @@ dependencies {
         exclude module: "gson"
         exclude module: "commons-io"
     }
-    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    annotationProcessor "org.spongepowered:mixin:0.8.3:processor"
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
@@ -70,9 +70,9 @@ jar {
                 "TweakClass": 'org.spongepowered.asm.launch.MixinTweaker'
         ])
     }
-    // from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
-        // exclude 'LICENSE.txt', 'module-info.class', 'META-INF/*'
-    // }
+    from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+       exclude 'LICENSE.txt', 'module-info.class', 'META-INF/*'
+    }
 }
 
 sourceSets {

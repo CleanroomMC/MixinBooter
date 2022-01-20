@@ -3,7 +3,7 @@
   "required": true,
   "refmap": "mixins.mixinbooter.refmap.json",
   "target": "@env(DEFAULT)",
-  "minVersion": "0.6",
+  "minVersion": "0.8",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "LoadControllerMixin"
