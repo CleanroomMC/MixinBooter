@@ -57,7 +57,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             meta.modId = "mixinbooter";
             meta.name = "MixinBooter";
             meta.description = "A library mod that helps out modders that want to mixin into mods but couldn't as they weren't inherently coremods.";
-            meta.version = "3.0";
+            meta.version = "3.1";
             meta.logoFile = "/icon.png";
             meta.authorList.add("Rongmario");
         }

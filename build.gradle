@@ -17,9 +17,9 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '3.0'
+version = '3.1'
 group = 'zone.rong.mixinbooter' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'mixinbooter'
+archivesBaseName = '.mixinbooter'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -42,6 +42,7 @@ configurations {
     implementation.extendsFrom(embed)
 }
 
+
 repositories {
     maven {
         url "https://repo.spongepowered.org/maven"
@@ -49,7 +50,7 @@ repositories {
 }
 
 dependencies {
-    embed ("org.spongepowered:mixin:0.8.5-SNAPSHOT") {
+    embed ("org.spongepowered:mixin:0.8.5") {
         exclude module: "asm-commons"
         exclude module: "asm-tree"
         exclude module: "launchwrapper"
@@ -58,18 +59,20 @@ dependencies {
         exclude module: "gson"
         exclude module: "commons-io"
     }
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
 jar {
     manifest {
         attributes([
-                "FMLCorePluginContainsFMLMod": false,
                 "FMLCorePlugin": 'zone.rong.mixinbooter.MixinBooterPlugin',
-                "ForceLoadAsMod": true,
                 "TweakClass": 'org.spongepowered.asm.launch.MixinTweaker'
         ])
     }
+    // from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        // exclude 'LICENSE.txt', 'module-info.class', 'META-INF/*'
+    // }
 }
 
 sourceSets {
