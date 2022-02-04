@@ -17,7 +17,7 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '3.2'
+version = '4.0'
 group = 'zone.rong.mixinbooter' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = '.mixinbooter'
 
@@ -42,7 +42,6 @@ configurations {
     implementation.extendsFrom(embed)
 }
 
-
 repositories {
     maven {
         url "https://repo.spongepowered.org/maven"
@@ -50,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    embed ("org.spongepowered:mixin:0.8.3") {
+    embed ("org.spongepowered:mixin:0.8.2") {
         exclude module: "asm-commons"
         exclude module: "asm-tree"
         exclude module: "launchwrapper"
