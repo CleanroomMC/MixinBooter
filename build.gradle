@@ -58,7 +58,6 @@ dependencies {
         exclude module: "gson"
         exclude module: "commons-io"
     }
-    annotationProcessor "org.spongepowered:mixin:0.8.3:processor"
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
