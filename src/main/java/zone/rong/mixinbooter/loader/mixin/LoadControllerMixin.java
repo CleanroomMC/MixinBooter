@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.Proxy;
+import zone.rong.mixinbooter.IMixinLoader;
 import zone.rong.mixinbooter.MixinBooterPlugin;
 import zone.rong.mixinbooter.MixinLoader;
 
@@ -31,6 +32,13 @@ public class LoadControllerMixin {
             MixinBooterPlugin.LOGGER.info("Instantiating all MixinLoader annotated classes...");
 
             for (ASMDataTable.ASMData asmData : asmDataTable.getAll(MixinLoader.class.getName())) {
+                modClassLoader.addFile(asmData.getCandidate().getModContainer()); // Add to path before `newInstance`
+                Class<?> clazz = Class.forName(asmData.getClassName());
+                MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
+                clazz.newInstance();
+            }
+
+            for (ASMDataTable.ASMData asmData : asmDataTable.getAll(IMixinLoader.class.getName().replace('.', '/'))) {
                 modClassLoader.addFile(asmData.getCandidate().getModContainer()); // Add to path before `newInstance`
                 Class<?> clazz = Class.forName(asmData.getClassName());
                 MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
