@@ -40,7 +40,7 @@ public class LoadControllerMixin {
 
             for (ASMDataTable.ASMData asmData : asmDataTable.getAll(IMixinLoader.class.getName().replace('.', '/'))) {
                 modClassLoader.addFile(asmData.getCandidate().getModContainer()); // Add to path before `newInstance`
-                Class<?> clazz = Class.forName(asmData.getClassName());
+                Class<?> clazz = Class.forName(asmData.getClassName().replace('/', '.'));
                 MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
                 clazz.newInstance();
             }
