@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
@@ -48,15 +49,20 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         if (coremodList instanceof List) {
             for (Object coremod : (List) coremodList) {
                 try {
-                    IEarlyMixinLoader loader = (IEarlyMixinLoader) coremod.getClass().getField("coreModInstance").get(coremod);
-                    for (String mixinConfig : loader.getMixinConfigs()) {
-                        if (loader.shouldMixinConfigQueue(mixinConfig)) {
-                            LOGGER.info("Adding {} mixin configuration.", mixinConfig);
-                            Mixins.addConfiguration(mixinConfig);
-                            loader.onMixinConfigQueued(mixinConfig);
+                    Field field = coremod.getClass().getField("coreModInstance");
+                    field.setAccessible(true);
+                    Object theMod = field.get(coremod);
+                    if(theMod instanceof IEarlyMixinLoader) {
+                        IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
+                        for (String mixinConfig : loader.getMixinConfigs()) {
+                            if (loader.shouldMixinConfigQueue(mixinConfig)) {
+                                LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                                Mixins.addConfiguration(mixinConfig);
+                                loader.onMixinConfigQueued(mixinConfig);
+                            }
                         }
                     }
-                } catch (Exception ignored) { }
+                } catch (Exception e) { LOGGER.error("Unexpected error", e); }
             }
         }
     }
