@@ -52,7 +52,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                     Field field = coremod.getClass().getField("coreModInstance");
                     field.setAccessible(true);
                     Object theMod = field.get(coremod);
-                    if(theMod instanceof IEarlyMixinLoader) {
+                    if (theMod instanceof IEarlyMixinLoader) {
                         IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
                         for (String mixinConfig : loader.getMixinConfigs()) {
                             if (loader.shouldMixinConfigQueue(mixinConfig)) {
@@ -62,7 +62,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                             }
                         }
                     }
-                } catch (Exception e) { LOGGER.error("Unexpected error", e); }
+                } catch (Exception e) {
+                    LOGGER.error("Unexpected error", e);
+                }
             }
         }
     }
