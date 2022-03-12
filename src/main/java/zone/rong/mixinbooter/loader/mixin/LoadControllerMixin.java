@@ -5,12 +5,13 @@ import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.MixinEnvironment;
+import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.Proxy;
-import zone.rong.mixinbooter.IMixinLoader;
+import zone.rong.mixinbooter.ILateMixinLoader;
 import zone.rong.mixinbooter.MixinBooterPlugin;
 import zone.rong.mixinbooter.MixinLoader;
 
@@ -38,11 +39,20 @@ public class LoadControllerMixin {
                 clazz.newInstance();
             }
 
-            for (ASMDataTable.ASMData asmData : asmDataTable.getAll(IMixinLoader.class.getName().replace('.', '/'))) {
+            MixinBooterPlugin.LOGGER.info("Instantiating all ILateMixinLoader implemented classes...");
+
+            for (ASMDataTable.ASMData asmData : asmDataTable.getAll(ILateMixinLoader.class.getName().replace('.', '/'))) {
                 modClassLoader.addFile(asmData.getCandidate().getModContainer()); // Add to path before `newInstance`
                 Class<?> clazz = Class.forName(asmData.getClassName().replace('/', '.'));
                 MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
-                clazz.newInstance();
+                ILateMixinLoader loader = (ILateMixinLoader) clazz.newInstance();
+                for (String mixinConfig : loader.getMixinConfigs()) {
+                    if (loader.shouldMixinConfigQueue(mixinConfig)) {
+                        MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                        Mixins.addConfiguration(mixinConfig);
+                        loader.onMixinConfigQueued(mixinConfig);
+                    }
+                }
             }
 
             for (ModContainer container : this.loader.getActiveModList()) {
