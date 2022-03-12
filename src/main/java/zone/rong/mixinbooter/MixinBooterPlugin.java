@@ -11,11 +11,13 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
 
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.MCVersion(ForgeVersion.mcVersion)
-@IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 10000)
+@IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
@@ -42,7 +44,30 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     @Override
-    public void injectData(Map<String, Object> data) { }
+    public void injectData(Map<String, Object> data) {
+        Object coremodList = data.get("coremodList");
+        if (coremodList instanceof List) {
+            for (Object coremod : (List) coremodList) {
+                try {
+                    Field field = coremod.getClass().getField("coreModInstance");
+                    field.setAccessible(true);
+                    Object theMod = field.get(coremod);
+                    if (theMod instanceof IEarlyMixinLoader) {
+                        IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
+                        for (String mixinConfig : loader.getMixinConfigs()) {
+                            if (loader.shouldMixinConfigQueue(mixinConfig)) {
+                                LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                                Mixins.addConfiguration(mixinConfig);
+                                loader.onMixinConfigQueued(mixinConfig);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Unexpected error", e);
+                }
+            }
+        }
+    }
 
     @Override
     public String getAccessTransformerClass() {
