@@ -1,0 +1,3 @@
+org.spongepowered.tools.obfuscation.MixinObfuscationProcessorInjection
+org.spongepowered.tools.obfuscation.MixinObfuscationProcessorTargets
+zone.rong.mixinextras.MixinExtrasAnnotationProcessor

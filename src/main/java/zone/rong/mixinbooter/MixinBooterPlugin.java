@@ -10,6 +10,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
+import org.spongepowered.asm.mixin.injection.struct.InjectionInfo;
+import zone.rong.mixinextras.injector.ModifyExpressionValueInjectionInfo;
+import zone.rong.mixinextras.injector.ModifyReceiverInjectionInfo;
+import zone.rong.mixinextras.injector.ModifyReturnValueInjectionInfo;
+import zone.rong.mixinextras.injector.WrapWithConditionInjectionInfo;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -25,6 +30,11 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     static {
         LOGGER.info("MixinBootstrap Initializing...");
         MixinBootstrap.init();
+        // Initialize MixinExtras
+        InjectionInfo.register(ModifyExpressionValueInjectionInfo.class);
+        InjectionInfo.register(ModifyReceiverInjectionInfo.class);
+        InjectionInfo.register(ModifyReturnValueInjectionInfo.class);
+        InjectionInfo.register(WrapWithConditionInjectionInfo.class);
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
     }
 
@@ -81,8 +91,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             ModMetadata meta = this.getMetadata();
             meta.modId = "mixinbooter";
             meta.name = "MixinBooter";
-            meta.description = "A library mod that helps out modders that want to mixin into mods but couldn't as they weren't inherently coremods.";
-            meta.version = "4.2";
+            meta.description = "A Mixin library and loader.";
+            meta.version = "5.0";
             meta.logoFile = "/icon.png";
             meta.authorList.add("Rongmario");
         }
