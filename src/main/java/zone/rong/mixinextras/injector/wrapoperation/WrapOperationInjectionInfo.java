@@ -7,13 +7,10 @@ import org.spongepowered.asm.mixin.injection.code.Injector;
 import org.spongepowered.asm.mixin.injection.points.BeforeConstant;
 import org.spongepowered.asm.mixin.injection.struct.InjectionInfo;
 import org.spongepowered.asm.mixin.injection.struct.InjectionInfo.HandlerPrefix;
-import org.spongepowered.asm.mixin.refmap.IMixinContext;
 import org.spongepowered.asm.mixin.transformer.MixinTargetContext;
 import org.spongepowered.asm.util.Annotations;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @InjectionInfo.AnnotationType(WrapOperation.class)
@@ -21,17 +18,6 @@ import java.util.List;
 public class WrapOperationInjectionInfo extends InjectionInfo {
   public WrapOperationInjectionInfo(MixinTargetContext mixin, MethodNode method, AnnotationNode annotation) {
     super(mixin, method, annotation, determineAtKey(mixin, method, annotation));
-  }
-
-  // CompatibilityHelper
-  private static final Method INJECTION_INFO_GET_MIXIN_METHOD;
-
-  static {
-    INJECTION_INFO_GET_MIXIN_METHOD =
-        Arrays.stream(InjectionInfo.class.getMethods())
-            .filter(it -> it.getParameterTypes().length == 0 && it.getReturnType() == IMixinContext.class && it.getName().startsWith("get"))
-            .findAny()
-            .orElse(null);
   }
 
   @Override
