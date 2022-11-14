@@ -35,13 +35,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
-    static {
-        LOGGER.info("MixinBootstrap Initializing...");
-        MixinBootstrap.init();
-        initMixinExtra(true);
-        Mixins.addConfiguration("mixin.mixinbooter.init.json");
-    }
-
     // Initialize MixinExtras
     public static void initMixinExtra(boolean runtime) {
         InjectionInfo.register(ModifyExpressionValueInjectionInfo.class);
@@ -72,10 +65,17 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             // Fail-fast so people report this and I can fix it
             throw new RuntimeException(
-                String.format("Failed to inject extension %s. Please inform LlamaLad7!", extension),
+                String.format("Failed to inject extension %s. Please inform Rongmario!", extension),
                 e
             );
         }
+    }
+
+    public MixinBooterPlugin() {
+        LOGGER.info("MixinBootstrap Initializing...");
+        MixinBootstrap.init();
+        initMixinExtra(true);
+        Mixins.addConfiguration("mixin.mixinbooter.init.json");
     }
 
     @Override
