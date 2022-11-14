@@ -42,7 +42,7 @@ public class ModifyReceiverInjector extends Injector {
         Type[] originalArgTypes = getEffectiveArgTypes(node.getOriginalTarget());
         Type[] currentArgTypes = getEffectiveArgTypes(currentTarget);
         InsnList insns = new InsnList();
-        boolean isVirtualRedirect = node.hasDecoration("redirector") && currentTarget.getOpcode() != Opcodes.INVOKESTATIC;
+        boolean isVirtualRedirect = node.isReplaced() && node.hasDecoration("redirector") && node.getCurrentTarget().getOpcode() != Opcodes.INVOKESTATIC;
         this.injectReceiverModifier(target, originalArgTypes, currentArgTypes, isVirtualRedirect, insns);
         target.insertBefore(node, insns);
     }

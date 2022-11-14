@@ -50,7 +50,7 @@ public class WrapWithConditionInjector extends Injector {
         Type[] currentArgTypes = getEffectiveArgTypes(currentTarget);
         InsnList before = new InsnList();
         InsnList after = new InsnList();
-        boolean isVirtualRedirect = node.hasDecoration("redirector") && currentTarget.getOpcode() != Opcodes.INVOKESTATIC;
+        boolean isVirtualRedirect = node.isReplaced() && node.hasDecoration("redirector") && node.getCurrentTarget().getOpcode() != Opcodes.INVOKESTATIC;
         this.invokeHandler(target, returnType, originalArgTypes, currentArgTypes, isVirtualRedirect, before, after);
         target.wrapNode(currentTarget, currentTarget, before, after);
     }
