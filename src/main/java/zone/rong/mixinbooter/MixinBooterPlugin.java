@@ -9,14 +9,22 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.injection.struct.InjectionInfo;
+import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
+import org.spongepowered.asm.mixin.transformer.ext.Extensions;
+import org.spongepowered.asm.mixin.transformer.ext.IExtension;
 import zone.rong.mixinextras.injector.ModifyExpressionValueInjectionInfo;
 import zone.rong.mixinextras.injector.ModifyReceiverInjectionInfo;
 import zone.rong.mixinextras.injector.ModifyReturnValueInjectionInfo;
 import zone.rong.mixinextras.injector.WrapWithConditionInjectionInfo;
+import zone.rong.mixinextras.injector.wrapoperation.WrapOperationApplicatorExtension;
+import zone.rong.mixinextras.injector.wrapoperation.WrapOperationInjectionInfo;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +43,33 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         InjectionInfo.register(ModifyReceiverInjectionInfo.class);
         InjectionInfo.register(ModifyReturnValueInjectionInfo.class);
         InjectionInfo.register(WrapWithConditionInjectionInfo.class);
+        InjectionInfo.register(WrapOperationInjectionInfo.class);
+        // TODO: Do we need to condition this between runtime and build-time?
+        registerExtension(new WrapOperationApplicatorExtension());
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
+    }
+
+    // (0.1.1-rc.2) Apply @WrapOperations in an IExtension to make sure they're the last injectors to run.
+    // (0.1.1-rc.4) Add extensions to Extensions#activeExtensions in case they've already been selected
+    private static void registerExtension(IExtension extension) {
+        IMixinTransformer transformer = (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
+        Extensions extensions = (Extensions) transformer.getExtensions();
+        extensions.add(extension);
+        try {
+            // In case we're initialising after the extensions have already been selected, we have to hack ourselves in.
+            // If we haven't passed selection yet, it doesn't matter, because the list is re-created then.
+            Field activeExtensionsField = Extensions.class.getDeclaredField("activeExtensions");
+            activeExtensionsField.setAccessible(true);
+            List<IExtension> activeExtensions = new ArrayList<>((List<IExtension>) activeExtensionsField.get(extensions));
+            activeExtensions.add(extension);
+            activeExtensionsField.set(extensions, Collections.unmodifiableList(activeExtensions));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            // Fail-fast so people report this and I can fix it
+            throw new RuntimeException(
+                String.format("Failed to inject extension %s. Please inform LlamaLad7!", extension),
+                e
+            );
+        }
     }
 
     @Override
