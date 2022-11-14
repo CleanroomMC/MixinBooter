@@ -38,26 +38,32 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     static {
         LOGGER.info("MixinBootstrap Initializing...");
         MixinBootstrap.init();
-        // Initialize MixinExtras
+        initMixinExtra(true);
+        Mixins.addConfiguration("mixin.mixinbooter.init.json");
+    }
+
+    // Initialize MixinExtras
+    public static void initMixinExtra(boolean runtime) {
         InjectionInfo.register(ModifyExpressionValueInjectionInfo.class);
         InjectionInfo.register(ModifyReceiverInjectionInfo.class);
         InjectionInfo.register(ModifyReturnValueInjectionInfo.class);
         InjectionInfo.register(WrapWithConditionInjectionInfo.class);
         InjectionInfo.register(WrapOperationInjectionInfo.class);
-        // TODO: Do we need to condition this between runtime and build-time?
-        registerExtension(new WrapOperationApplicatorExtension());
-        Mixins.addConfiguration("mixin.mixinbooter.init.json");
+        // Make sure it is not running in build-time
+        if (runtime) {
+            registerExtension(new WrapOperationApplicatorExtension());
+        }
     }
 
     // (0.1.1-rc.2) Apply @WrapOperations in an IExtension to make sure they're the last injectors to run.
     // (0.1.1-rc.4) Add extensions to Extensions#activeExtensions in case they've already been selected
+    @SuppressWarnings("unchecked")
     private static void registerExtension(IExtension extension) {
         IMixinTransformer transformer = (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
         Extensions extensions = (Extensions) transformer.getExtensions();
-        extensions.add(extension);
+        // Because the extensions have already been selected by MixinBooters, so we have to hack extension in.
+        // If we haven't passed selection yet, it doesn't matter, because the list is re-created then.
         try {
-            // In case we're initialising after the extensions have already been selected, we have to hack ourselves in.
-            // If we haven't passed selection yet, it doesn't matter, because the list is re-created then.
             Field activeExtensionsField = Extensions.class.getDeclaredField("activeExtensions");
             activeExtensionsField.setAccessible(true);
             List<IExtension> activeExtensions = new ArrayList<>((List<IExtension>) activeExtensionsField.get(extensions));
