@@ -1,4 +1,4 @@
-package zone.rong.mixinbooter.loader.mixin;
+package zone.rong.mixinbooter.mixin;
 
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
