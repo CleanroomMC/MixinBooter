@@ -16,7 +16,7 @@ public class CrashReportMixin {
 
     @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, StringWriter stringwriter, PrintWriter printwriter, Throwable throwable) {
-        cir.setReturnValue(cir.getReturnValue() + MixinStack.findMixinsInStackTrace(throwable));
+        cir.setReturnValue(cir.getReturnValue() + new MixinStack(throwable));
     }
 
 }

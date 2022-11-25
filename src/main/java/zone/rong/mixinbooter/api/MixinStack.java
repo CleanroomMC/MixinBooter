@@ -9,59 +9,88 @@ import java.lang.reflect.Method;
 import java.util.Set;
 
 public class MixinStack {
+    private static Method classInfo$getMixins;
+    private boolean containsMixinsInStack;
+    private String mixinStack;
 
-    public static String findMixinsInStackTrace(Throwable throwable) {
-        StringBuilder mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
-        StackTraceElement[] stacktrace = throwable.getStackTrace();
-        if (stacktrace.length == 0) {
-            mixinMetadataBuilder.append("\nFailed to find Mixin Metadata because Stacktrace is empty\n");
-            return mixinMetadataBuilder.toString();
+    static {
+        try {
+            classInfo$getMixins = ClassInfo.class.getDeclaredMethod("getMixins");
+            classInfo$getMixins.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            MixinBooterPlugin.LOGGER.error("Not able to reflect ClassInfo#getMixins");
+        }
+    }
+
+    public MixinStack(Throwable throwable) {
+        findMixinsInStack(throwable.getStackTrace());
+    }
+
+    public MixinStack(StackTraceElement[] stacktrace) {
+        findMixinsInStack(stacktrace);
+    }
+
+    private void findMixinsInStack(StackTraceElement[] stacktrace) {
+        if (classInfo$getMixins == null) {
+            mixinStack = "\n(MixinBooter) Not able to reflect ClassInfo#getMixins\n";
+            return;
         }
 
-        try {
-            Set<String> classes = new ObjectOpenHashSet<>();
-            for (StackTraceElement stackTraceElement : stacktrace) {
-                classes.add(stackTraceElement.getClassName());
-            }
-            Method classInfo$getMixins;
-            try {
-                classInfo$getMixins = ClassInfo.class.getDeclaredMethod("getMixins");
-                classInfo$getMixins.setAccessible(true);
+        if (stacktrace.length == 0) {
+            mixinStack = "\n(MixinBooter) Failed to find Mixin Metadata because the provided Stacktrace is empty\n";
+            return;
+        }
 
-                for (String className : classes) {
-                    ClassInfo classInfo = ClassInfo.fromCache(className);
-                    if (classInfo != null) {
-                        @SuppressWarnings("unchecked")
-                        Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$getMixins.invoke(classInfo);
-                        if (!mixinInfos.isEmpty()) {
-                            mixinMetadataBuilder.append("\n\t");
-                            mixinMetadataBuilder.append(className);
-                            mixinMetadataBuilder.append(":");
-                            for (IMixinInfo mixinInfo : mixinInfos) {
-                                mixinMetadataBuilder.append("\n\t\t");
-                                mixinMetadataBuilder.append(mixinInfo.getClassName());
-                                mixinMetadataBuilder.append(" (");
-                                mixinMetadataBuilder.append(mixinInfo.getConfig().getName());
-                                mixinMetadataBuilder.append(")");
-                            }
+        StringBuilder mixinMetadataBuilder = null;
+        Set<String> classes = new ObjectOpenHashSet<>();
+        for (StackTraceElement stackTraceElement : stacktrace) {
+            classes.add(stackTraceElement.getClassName());
+        }
+        try {
+            for (String className : classes) {
+                ClassInfo classInfo = ClassInfo.fromCache(className);
+                if (classInfo != null) {
+                    @SuppressWarnings("unchecked")
+                    Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$getMixins.invoke(classInfo);
+                    if (!mixinInfos.isEmpty()) {
+                        if (mixinMetadataBuilder == null) {
+                            mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
+                        }
+                        mixinMetadataBuilder.append("\n\t");
+                        mixinMetadataBuilder.append(className);
+                        mixinMetadataBuilder.append(":");
+                        for (IMixinInfo mixinInfo : mixinInfos) {
+                            mixinMetadataBuilder.append("\n\t\t");
+                            mixinMetadataBuilder.append(mixinInfo.getClassName());
+                            mixinMetadataBuilder.append(" (");
+                            mixinMetadataBuilder.append(mixinInfo.getConfig().getName());
+                            mixinMetadataBuilder.append(")");
                         }
                     }
                 }
-            } catch (ReflectiveOperationException e) {
-                mixinMetadataBuilder.append("\nNot able to reflect ClassInfo#getMixins\n");
-                MixinBooterPlugin.LOGGER.warn("Not able to reflect ClassInfo#getMixins");
             }
 
-            if (mixinMetadataBuilder.length() == 36) {
-                mixinMetadataBuilder.append("\nNo Mixin Metadata is found in the Stacktrace.\n");
+            if (mixinMetadataBuilder == null) {
+                mixinStack = "\n(MixinBooter) No Mixin Metadata is found in the Stacktrace.\n";
+                return;
             }
 
         } catch (Throwable t) {
-            mixinMetadataBuilder.append("\nFailed to find Mixin Metadata in Stacktrace:\n");
-            mixinMetadataBuilder.append(t);
+            mixinStack = "\n(MixinBooter) Failed to find Mixin Metadata in Stacktrace: " + t + "\n";
+            return;
         }
 
-        return mixinMetadataBuilder.toString();
+        containsMixinsInStack = true;
+        mixinStack = mixinMetadataBuilder.toString();
+    }
+
+    public boolean doseStackContainMixins() {
+        return containsMixinsInStack;
+    }
+
+    @Override
+    public String toString() {
+        return mixinStack;
     }
 
 }
