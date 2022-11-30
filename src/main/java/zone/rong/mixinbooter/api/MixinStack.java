@@ -232,7 +232,7 @@ public class MixinStack {
     }
 
     private boolean formatStackMessage() {
-        if (errorMessage != null || reflectionErrors != null) {
+        if (errorMessage != null || reflectionErrors.length() != 0) {
             return false;
         }
 
