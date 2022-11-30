@@ -74,11 +74,11 @@ public class MixinStack {
     }
 
 
-    public MixinStack createStackReport(StackTraceElement[] stacktrace) {
+    public static MixinStack createStackReport(StackTraceElement[] stacktrace) {
         return new MixinStack(stacktrace);
     }
 
-    public MixinStack createStackReport(Throwable throwable) {
+    public static MixinStack createStackReport(Throwable throwable) {
         return new MixinStack(throwable.getStackTrace());
     }
 
@@ -119,7 +119,7 @@ public class MixinStack {
     }
 
 
-    private static final StringBuilder tabBuilder = new StringBuilder();
+    private final StringBuilder tabBuilder = new StringBuilder();
 
     private String indentBuilder(int indent) {
         String tab;
