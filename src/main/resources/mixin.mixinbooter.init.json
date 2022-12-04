@@ -1,5 +1,5 @@
 {
-  "package": "zone.rong.mixinbooter.mixin",
+  "package": "zone.rong.mixinbooter.internal.mixin",
   "required": true,
   "refmap": "mixins.mixinbooter.refmap.json",
   "target": "@env(DEFAULT)",

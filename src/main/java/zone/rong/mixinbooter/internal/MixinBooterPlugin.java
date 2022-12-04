@@ -1,4 +1,4 @@
-package zone.rong.mixinbooter;
+package zone.rong.mixinbooter.internal;
 
 import com.google.common.eventbus.EventBus;
 import net.minecraftforge.common.ForgeVersion;
@@ -15,7 +15,9 @@ import org.spongepowered.asm.mixin.injection.struct.InjectionInfo;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 import org.spongepowered.asm.mixin.transformer.ext.IExtension;
-import zone.rong.mixinbooter.api.IMixinLogGenerator;
+import zone.rong.mixinbooter.IEarlyMixinLoader;
+import zone.rong.mixinbooter.IMixinLogGenerator;
+import zone.rong.mixinbooter.internal.reflect.Reflections;
 import zone.rong.mixinextras.injector.ModifyExpressionValueInjectionInfo;
 import zone.rong.mixinextras.injector.ModifyReceiverInjectionInfo;
 import zone.rong.mixinextras.injector.ModifyReturnValueInjectionInfo;
@@ -85,7 +87,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin, IMixinLogGene
 
     @Override
     public String getModContainerClass() {
-        return "zone.rong.mixinbooter.MixinBooterPlugin$Container";
+        return "zone.rong.mixinbooter.internal.MixinBooterPlugin$Container";
     }
 
     @Override
@@ -97,23 +99,17 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin, IMixinLogGene
     public void injectData(Map<String, Object> data) {
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
-            for (Object coremod : (List) coremodList) {
-                try {
-                    Field field = coremod.getClass().getField("coreModInstance");
-                    field.setAccessible(true);
-                    Object theMod = field.get(coremod);
-                    if (theMod instanceof IEarlyMixinLoader) {
-                        IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
-                        for (String mixinConfig : loader.getMixinConfigs()) {
-                            if (loader.shouldMixinConfigQueue(mixinConfig)) {
-                                LOGGER.info("Adding {} mixin configuration.", mixinConfig);
-                                Mixins.addConfiguration(mixinConfig);
-                                loader.onMixinConfigQueued(mixinConfig);
-                            }
+            for (Object coremod : (List<?>) coremodList) {
+                Object theMod = Reflections.reflectCoreModManager$coreModInstance(coremod);
+                if (theMod instanceof IEarlyMixinLoader) {
+                    IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
+                    for (String mixinConfig : loader.getMixinConfigs()) {
+                        if (loader.shouldMixinConfigQueue(mixinConfig)) {
+                            LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                            Mixins.addConfiguration(mixinConfig);
+                            loader.onMixinConfigQueued(mixinConfig);
                         }
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Unexpected error", e);
                 }
             }
         }
@@ -132,7 +128,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin, IMixinLogGene
 
 
     @Override
-    public boolean shouldMixinReportCustomMessage(String mixinConfig) {
+    public boolean shouldMixinReportJsonMessage(String mixinConfig) {
         return mixinConfig.equals("mixin.MixinFurnaceTile.json");
     }
 
