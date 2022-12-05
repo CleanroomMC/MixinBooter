@@ -17,7 +17,7 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '7.0'
+version = '7.1'
 group = 'zone.rong' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = '!mixinbooter' // I hate Forge
 
@@ -28,7 +28,7 @@ minecraft {
     runDir = "run"
     mappings = "snapshot_20171003"
     def args = [
-            '-Dfml.coreMods.load=zone.rong.mixinbooter.MixinBooterPlugin',
+            '-Dfml.coreMods.load=zone.rong.mixinbooter.internal.MixinBooterPlugin',
             '-Dmixin.hotSwap=true',
             '-Dmixin.checks.interfaces=true'
     ]
@@ -108,10 +108,10 @@ publishing {
     // select the repositories you want to publish to
     repositories {
         maven {
-            url cleanroom_maven
+//            url cleanroom_maven
             credentials {
-                username cleanroom_user
-                password cleanroom_pass
+ //               username cleanroom_user
+  //              password cleanroom_pass
             }
         }
     }

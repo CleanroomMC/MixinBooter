@@ -1,4 +1,4 @@
-package zone.rong.mixinbooter.mixin;
+package zone.rong.mixinbooter.internal.mixin;
 
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
@@ -12,8 +12,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.Proxy;
 import zone.rong.mixinbooter.ILateMixinLoader;
-import zone.rong.mixinbooter.MixinBooterPlugin;
+import zone.rong.mixinbooter.IMixinLogGenerator;
 import zone.rong.mixinbooter.MixinLoader;
+import zone.rong.mixinbooter.internal.MixinBooterPlugin;
+import zone.rong.mixinbooter.internal.stacktrace.MixinStack;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -46,6 +48,10 @@ public class LoadControllerMixin {
                 Class<?> clazz = Class.forName(asmData.getClassName().replace('/', '.'));
                 MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
                 ILateMixinLoader loader = (ILateMixinLoader) clazz.newInstance();
+                if (loader instanceof IMixinLogGenerator) {
+                    MixinStack.registerILateMixinsLogCallback((IMixinLogGenerator) loader);
+                }
+
                 for (String mixinConfig : loader.getMixinConfigs()) {
                     if (loader.shouldMixinConfigQueue(mixinConfig)) {
                         MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration.", mixinConfig);

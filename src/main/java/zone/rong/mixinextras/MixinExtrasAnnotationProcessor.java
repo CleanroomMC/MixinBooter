@@ -1,7 +1,7 @@
 package zone.rong.mixinextras;
 
 import org.spongepowered.asm.util.logging.MessageRouter;
-import zone.rong.mixinbooter.MixinBooterPlugin;
+import zone.rong.mixinbooter.internal.MixinBooterPlugin;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
