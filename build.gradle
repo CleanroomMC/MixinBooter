@@ -98,21 +98,21 @@ processResources {
     }
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifactId "mixinbooter"
-        }
-    }
-    // select the repositories you want to publish to
-    repositories {
-        maven {
-            url cleanroom_maven
-            credentials {
-                username cleanroom_user
-                password cleanroom_pass
-            }
-        }
-    }
-}
+//publishing {
+//    publications {
+//        mavenJava(MavenPublication) {
+//            from components.java
+//            artifactId "mixinbooter"
+//        }
+//    }
+//    // select the repositories you want to publish to
+//    repositories {
+//        maven {
+//            url cleanroom_maven
+//            credentials {
+//                username cleanroom_user
+//                password cleanroom_pass
+//            }
+//        }
+//    }
+//}

@@ -9,13 +9,15 @@ import org.spongepowered.asm.mixin.injection.struct.InjectionInfo;
 import org.spongepowered.asm.mixin.injection.struct.InjectionInfo.HandlerPrefix;
 import org.spongepowered.asm.mixin.transformer.MixinTargetContext;
 import org.spongepowered.asm.util.Annotations;
+import zone.rong.mixinextras.injector.LateApplyingInjectorInfo;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @InjectionInfo.AnnotationType(WrapOperation.class)
 @HandlerPrefix("wrapOperation")
-public class WrapOperationInjectionInfo extends InjectionInfo {
+public class WrapOperationInjectionInfo extends InjectionInfo implements LateApplyingInjectorInfo {
+  private LateApplyingInjectorInfo injectionInfoToQueue = this;
   public WrapOperationInjectionInfo(MixinTargetContext mixin, MethodNode method, AnnotationNode annotation) {
     super(mixin, method, annotation, determineAtKey(mixin, method, annotation));
   }
@@ -27,16 +29,22 @@ public class WrapOperationInjectionInfo extends InjectionInfo {
 
   @Override
   public void inject() {
-    WrapOperationApplicatorExtension.QUEUED_INJECTIONS.computeIfAbsent(this.mixin.getTarget(), k -> new ArrayList<>()).add(this);
+    WrapOperationApplicatorExtension.offerInjection(this.mixin.getTarget(), injectionInfoToQueue);
   }
 
   @Override
   public void postInject() {
   }
 
+  @Override
   public void lateApply() {
     super.inject();
     super.postInject();
+  }
+
+  @Override
+  public void wrap(LateApplyingInjectorInfo outer) {
+    this.injectionInfoToQueue = outer;
   }
 
   @Override
