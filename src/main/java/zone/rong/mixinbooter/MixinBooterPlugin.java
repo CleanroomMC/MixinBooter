@@ -87,7 +87,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             ACTIVE_EXTENSIONS_FIELD = Extensions.class.getDeclaredField("activeExtensions");
             ACTIVE_EXTENSIONS_FIELD.setAccessible(true);
         } catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException e) {
-            throw new RuntimeException("Failed to access some mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to access some mixin internals, please inform Rongmario!", e);
         }
     }
 
@@ -112,7 +112,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         try {
             return (Map<Target, List<InjectionNodes.InjectionNode>>) INJECTION_INFO_TARGET_NODES_FIELD.get(info);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform Rongmario!", e);
         }
     }
 
