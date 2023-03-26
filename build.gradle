@@ -17,7 +17,7 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '7.0'
+version = '7.1'
 group = 'zone.rong' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = '!mixinbooter' // I hate Forge
 
@@ -101,8 +101,10 @@ processResources {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
+            // from components.java
             artifactId "mixinbooter"
+            artifact jar
+            artifact sourceJar
         }
     }
     // select the repositories you want to publish to
@@ -112,6 +114,9 @@ publishing {
             credentials {
                 username cleanroom_user
                 password cleanroom_pass
+            }
+            authentication {
+                basic(BasicAuthentication)
             }
         }
     }

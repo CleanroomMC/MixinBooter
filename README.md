@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    deobfCompile ("zone.rong:mixinbooter:7.0")
+    compile ("zone.rong:mixinbooter:7.1")
 }
 ```
 

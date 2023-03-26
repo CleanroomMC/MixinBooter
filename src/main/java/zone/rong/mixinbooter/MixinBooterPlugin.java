@@ -1,6 +1,7 @@
 package zone.rong.mixinbooter;
 
 import com.google.common.eventbus.EventBus;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.LoadController;
@@ -34,6 +35,10 @@ import java.util.Map;
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
+
+    static {
+        Launch.classLoader.addTransformerExclusion("scala.");
+    }
 
     // Initialize MixinExtras
     public static void initMixinExtra(boolean runtime) {
@@ -132,7 +137,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             meta.modId = "mixinbooter";
             meta.name = "MixinBooter";
             meta.description = "A Mixin library and loader.";
-            meta.version = "7.0";
+            meta.version = "7.1";
             meta.logoFile = "/icon.png";
             meta.authorList.add("Rongmario");
         }
