@@ -1,6 +1,7 @@
 package zone.rong.mixinextras.injector;
 
 import org.spongepowered.asm.mixin.injection.throwables.InvalidInjectionException;
+import zone.rong.mixinextras.utils.InjectorUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -42,7 +43,7 @@ public class ModifyReceiverInjector extends Injector {
         Type[] originalArgTypes = getEffectiveArgTypes(node.getOriginalTarget());
         Type[] currentArgTypes = getEffectiveArgTypes(currentTarget);
         InsnList insns = new InsnList();
-        boolean isVirtualRedirect = node.isReplaced() && node.hasDecoration("redirector") && node.getCurrentTarget().getOpcode() != Opcodes.INVOKESTATIC;
+        boolean isVirtualRedirect = InjectorUtils.isVirtualRedirect(node);
         this.injectReceiverModifier(target, originalArgTypes, currentArgTypes, isVirtualRedirect, insns);
         target.insertBefore(node, insns);
     }
