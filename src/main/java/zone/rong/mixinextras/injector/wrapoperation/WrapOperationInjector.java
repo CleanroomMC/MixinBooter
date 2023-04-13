@@ -283,7 +283,7 @@ class WrapOperationInjector extends Injector {
       AbstractInsnNode current = InjectorUtils.getNextInstruction(node);
       for (Predicate<AbstractInsnNode> predicate : predicates) {
           if (!predicate.test(current)) {
-              throw new AssertionError("Failed assertion when wrapping instructions. Please inform LlamaLad7!");
+              throw new AssertionError("Failed assertion when wrapping instructions. Please inform Rongmario!");
           }
           AbstractInsnNode old = current;
           do {

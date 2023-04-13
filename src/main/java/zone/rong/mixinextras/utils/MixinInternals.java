@@ -51,7 +51,7 @@ public class MixinInternals {
             INJECTION_INFO_INJECTOR_FIELD = InjectionInfo.class.getDeclaredField("injector");
             INJECTION_INFO_INJECTOR_FIELD.setAccessible(true);
         } catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException e) {
-            throw new RuntimeException("Failed to access some mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to access some mixin internals, please inform to Rongmario!", e);
         }
     }
 
@@ -64,7 +64,7 @@ public class MixinInternals {
             }
             return result;
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
     }
 
@@ -72,7 +72,7 @@ public class MixinInternals {
         try {
             return (Map<Target, List<InjectionNode>>) INJECTION_INFO_TARGET_NODES_FIELD.get(info);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
     }
 
@@ -84,7 +84,7 @@ public class MixinInternals {
             addExtension(extensionsList, extension);
             addExtension(extensions.getActiveExtensions(), extension);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
     }
 
@@ -113,7 +113,7 @@ public class MixinInternals {
         try {
             return (Map<String, Object>) INJECTION_NODE_DECORATIONS_FIELD.get(node);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
     }
 
@@ -121,7 +121,7 @@ public class MixinInternals {
         try {
             return (Injector) INJECTION_INFO_INJECTOR_FIELD.get(info);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
     }
 
@@ -130,7 +130,7 @@ public class MixinInternals {
             Object state = MIXIN_INFO_GET_STATE_METHOD.invoke(mixin);
             return (ClassNode) STATE_CLASS_NODE_FIELD.get(state);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException("Failed to use mixin internals, please report to LlamaLad7!", e);
+            throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
     }
 

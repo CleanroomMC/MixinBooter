@@ -34,7 +34,7 @@ public class ClassGenUtils {
                     }
                 };
             } catch (NoSuchMethodException e2) {
-                RuntimeException e = new RuntimeException("Could not resolve class definer! Please report to LlamaLad7.");
+                RuntimeException e = new RuntimeException("Could not resolve class definer! Please inform to Rongmario.");
                 e.addSuppressed(e1);
                 e.addSuppressed(e2);
                 throw e;

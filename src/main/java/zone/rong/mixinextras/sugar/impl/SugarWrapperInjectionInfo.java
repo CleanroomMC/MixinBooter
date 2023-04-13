@@ -174,7 +174,7 @@ public class SugarWrapperInjectionInfo extends InjectionInfo implements LateAppl
             if (delegate.getClass().getMethod("inject").getDeclaringClass() != InjectionInfo.class) {
                 throw new UnsupportedOperationException(
                         delegate.getClass() + "overrides 'inject' and so is not automatically compatible with Sugar." +
-                                "Please report to LlamaLad7 in case manual compatibility can be added."
+                                "Please inform to Rongmario in case manual compatibility can be added."
                 );
             }
         } catch (NoSuchMethodException e) {
