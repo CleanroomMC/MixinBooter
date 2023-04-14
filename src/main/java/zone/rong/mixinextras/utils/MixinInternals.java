@@ -27,6 +27,7 @@ public class MixinInternals {
     private static final Method MIXIN_INFO_GET_STATE_METHOD;
     private static final Field STATE_CLASS_NODE_FIELD;
     private static final Field EXTENSIONS_FIELD;
+    private static final Field ACTIVE_EXTENSIONS_FIELD;
     private static final Field INJECTION_INFO_TARGET_NODES_FIELD;
     private static final Field INJECTION_NODE_DECORATIONS_FIELD;
     private static final Field INJECTION_INFO_INJECTOR_FIELD;
@@ -46,6 +47,8 @@ public class MixinInternals {
             INJECTION_INFO_TARGET_NODES_FIELD.setAccessible(true);
             EXTENSIONS_FIELD = Extensions.class.getDeclaredField("extensions");
             EXTENSIONS_FIELD.setAccessible(true);
+            ACTIVE_EXTENSIONS_FIELD = Extensions.class.getDeclaredField("activeExtensions");
+            ACTIVE_EXTENSIONS_FIELD.setAccessible(true);
             INJECTION_NODE_DECORATIONS_FIELD = InjectionNode.class.getDeclaredField("decorations");
             INJECTION_NODE_DECORATIONS_FIELD.setAccessible(true);
             INJECTION_INFO_INJECTOR_FIELD = InjectionInfo.class.getDeclaredField("injector");
@@ -77,12 +80,14 @@ public class MixinInternals {
     }
 
     public static void registerExtension(IExtension extension) {
-        Extensions extensions = (Extensions) ((IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer()).getExtensions();
-        extensions.add(extension);
         try {
+            IMixinTransformer transformer = (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
+            Extensions extensions = (Extensions) transformer.getExtensions();
             List<IExtension> extensionsList = (List<IExtension>) EXTENSIONS_FIELD.get(extensions);
             addExtension(extensionsList, extension);
-            addExtension(extensions.getActiveExtensions(), extension);
+            List<IExtension> activeExtensions = new ArrayList<>((List<IExtension>) ACTIVE_EXTENSIONS_FIELD.get(extensions));
+            addExtension(activeExtensions, extension);
+            ACTIVE_EXTENSIONS_FIELD.set(extensions, Collections.unmodifiableList(activeExtensions));
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Failed to use mixin internals, please inform to Rongmario!", e);
         }
