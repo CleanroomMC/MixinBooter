@@ -1,6 +1,5 @@
 package zone.rong.mixinbooter.mixin;
 
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.crash.CrashReport;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -14,6 +13,7 @@ import zone.rong.mixinbooter.MixinBooterPlugin;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.Set;
 
 @Mixin(CrashReport.class)
@@ -25,13 +25,13 @@ public class CrashReportMixin {
         if (stacktrace.length > 0) {
             try {
                 StringBuilder mixinMetadataBuilder = null;
-                Set<String> classes = new ObjectOpenHashSet<>();
+                Set<String> classes = new HashSet<>();
                 for (StackTraceElement stackTraceElement : stacktrace) {
                     classes.add(stackTraceElement.getClassName());
                 }
                 Method classInfo$getMixins;
                 try {
-                    classInfo$getMixins = ClassInfo.class.getDeclaredMethod("getMixins");
+                    classInfo$getMixins = ClassInfo.class.getDeclaredMethod("getAppliedMixins");
                     classInfo$getMixins.setAccessible(true);
                     for (String className : classes) {
                         ClassInfo classInfo = ClassInfo.fromCache(className);
