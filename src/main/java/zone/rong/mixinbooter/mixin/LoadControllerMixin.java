@@ -18,6 +18,9 @@ import zone.rong.mixinbooter.MixinLoader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+/**
+ * Mixin that allows us to load "late" mixins for mods.
+ */
 @Mixin(value = LoadController.class, remap = false)
 public class LoadControllerMixin {
 

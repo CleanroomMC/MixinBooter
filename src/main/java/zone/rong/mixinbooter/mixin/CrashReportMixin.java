@@ -16,6 +16,10 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Mixin that allows CrashReports to be appended with mixin information.
+ * Any classes that have mixins enacted to it within the stacktrace will be shown just after the stacktrace section.
+ */
 @Mixin(CrashReport.class)
 public class CrashReportMixin {
 

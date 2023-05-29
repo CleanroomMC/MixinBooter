@@ -177,3 +177,24 @@ idea {
 tasks.named('processIdeaSettings').configure {
     dependsOn 'injectTags'
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            // from components.java
+            artifactId project.archivesBaseName
+            artifact tasks.named('properJar')
+            artifact tasks.named('sourcesJar')
+            artifact tasks.named('javadocJar')
+        }
+    }
+    repositories {
+        maven {
+            url cleanroom_maven
+            credentials {
+                username cleanroom_user
+                password cleanroom_pass
+            }
+        }
+    }
+}
