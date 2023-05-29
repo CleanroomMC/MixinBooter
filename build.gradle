@@ -144,6 +144,28 @@ tasks.register('properJar', Jar) {jar ->
     }
 }
 
+tasks.register('properSourcesJar', Jar) { jar ->
+    // Sources classifier
+    jar.archiveClassifier.set('sources')
+
+    // Gather all of our own source files
+    from sourceSets.main.allSource
+
+    // Gather sources of embed dependencies
+    configurations.embed.each { dep ->
+        fileTree(dep.getParentFile().getParentFile()).matching {
+            include '**/*-sources.jar'
+        }.each { sources ->
+            from zipTree(sources).matching {
+                include '**/*.java'
+            }
+        }
+    }
+
+    exclude 'module-info.java'
+
+}
+
 idea {
     module {
         inheritOutputDirs = true
@@ -185,7 +207,7 @@ publishing {
             groupId project.group
             artifactId project.archivesBaseName
             artifact tasks.named('properJar')
-            artifact tasks.named('sourcesJar')
+            artifact tasks.named('properSourcesJar')
             artifact tasks.named('javadocJar')
         }
     }
