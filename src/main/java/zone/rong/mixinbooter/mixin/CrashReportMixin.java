@@ -33,15 +33,15 @@ public class CrashReportMixin {
                 for (StackTraceElement stackTraceElement : stacktrace) {
                     classes.add(stackTraceElement.getClassName());
                 }
-                Method classInfo$getMixins;
+                Field classInfo$mixins;
                 try {
-                    classInfo$getMixins = ClassInfo.class.getDeclaredMethod("getAppliedMixins");
-                    classInfo$getMixins.setAccessible(true);
+                    classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
+                    classInfo$mixins.setAccessible(true);
                     for (String className : classes) {
                         ClassInfo classInfo = ClassInfo.fromCache(className);
                         if (classInfo != null) {
                             @SuppressWarnings("unchecked")
-                            Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$getMixins.invoke(classInfo);
+                            Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$mixins.get(classInfo);
                             if (!mixinInfos.isEmpty()) {
                                 if (mixinMetadataBuilder == null) {
                                     mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
