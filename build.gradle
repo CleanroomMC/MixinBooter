@@ -182,6 +182,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             // from components.java
+            groupId project.group
             artifactId project.archivesBaseName
             artifact tasks.named('properJar')
             artifact tasks.named('sourcesJar')
