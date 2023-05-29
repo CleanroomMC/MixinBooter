@@ -22,11 +22,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
-    static {
-        Launch.classLoader.addTransformerExclusion("scala.");
-    }
-
     public MixinBooterPlugin() {
+        Launch.classLoader.addTransformerExclusion("scala.");
         LOGGER.info("Initializing Mixins...");
         MixinBootstrap.init();
         Mixins.addConfiguration("mixin.mixinbooter.init.json");

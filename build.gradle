@@ -132,7 +132,15 @@ tasks.register('properJar', Jar) {jar ->
         include 'META-INF/services/*'
     }
 
-    exclude 'module-info.class'
+    // Exclude newer Java/Minecraft shenanigans
+    exclude '**/module-info.class'
+    exclude 'org/spongepowered/asm/service/modlauncher/*'
+    exclude 'org/spongepowered/asm/launch/MixinTransformationServiceLegacy*'
+    exclude 'org/spongepowered/asm/launch/MixinLaunchPlugin*'
+    exclude 'org/spongepowered/asm/launch/MixinTransformationService*'
+    exclude 'org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx*'
+    exclude 'META-INF/services/cpw.mods.modlauncher.api.ITransformationService'
+    exclude 'META-INF/services/cpw.mods.modlauncher.serviceapi.ILaunchPluginService'
 
     manifest {
         def attribute_map = [:]
@@ -162,7 +170,15 @@ tasks.register('properSourcesJar', Jar) { jar ->
         }
     }
 
-    exclude 'module-info.java'
+    // Exclude newer Java/Minecraft shenanigans
+    exclude '**/module-info.java'
+    exclude 'org/spongepowered/asm/service/modlauncher/*'
+    exclude 'org/spongepowered/asm/launch/MixinTransformationServiceLegacy*'
+    exclude 'org/spongepowered/asm/launch/MixinLaunchPlugin*'
+    exclude 'org/spongepowered/asm/launch/MixinTransformationService*'
+    exclude 'org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx*'
+    exclude 'META-INF/services/cpw.mods.modlauncher.api.ITransformationService'
+    exclude 'META-INF/services/cpw.mods.modlauncher.serviceapi.ILaunchPluginService'
 
 }
 
