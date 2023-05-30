@@ -48,6 +48,8 @@ sourceSets {
     relocate {
         compileClasspath += sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.runtimeClasspath
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
     }
 }
 
@@ -121,7 +123,7 @@ tasks.register('properJar', Jar) {jar ->
                 return it
             } else {
                 zipTree(it).matching {
-                    exclude 'org/spongepowered/asm/mixin/struct/MemberRef$Handle.class', '**/LICENSE*', 'META-INF/**'
+                    exclude '**/MemberRef$Handle.class', '**/FabricUtil.class', '**/LICENSE*', 'META-INF/**'
                 }
             }
         }
@@ -166,6 +168,7 @@ tasks.register('properSourcesJar', Jar) { jar ->
         }.each { sources ->
             from zipTree(sources).matching {
                 include '**/*.java'
+                exclude '**/MemberRef$Handle.java', '**/FabricUtil.java'
             }
         }
     }

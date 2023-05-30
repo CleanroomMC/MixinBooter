@@ -9,10 +9,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import zone.rong.mixinbooter.MixinBooterPlugin;
+import zone.rong.mixinbooter.MixinLocationDecorator;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -53,8 +54,10 @@ public class CrashReportMixin {
                                     mixinMetadataBuilder.append("\n\t\t");
                                     mixinMetadataBuilder.append(mixinInfo.getClassName());
                                     mixinMetadataBuilder.append(" (");
-                                    mixinMetadataBuilder.append(mixinInfo.getConfig().getName());
-                                    mixinMetadataBuilder.append(")");
+                                    mixinMetadataBuilder.append(mixinInfo.getConfig());
+                                    mixinMetadataBuilder.append(") [");
+                                    mixinMetadataBuilder.append(MixinLocationDecorator.getDecoratedMixinLocation(mixinInfo));
+                                    mixinMetadataBuilder.append("]");
                                 }
                             }
                         }
