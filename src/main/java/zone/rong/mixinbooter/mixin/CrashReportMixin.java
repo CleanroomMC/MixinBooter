@@ -60,7 +60,7 @@ public class CrashReportMixin {
                         }
                     }
                 } catch (ReflectiveOperationException e) {
-                    MixinBooterPlugin.LOGGER.warn("Not able to reflect ClassInfo#getMixins");
+                    MixinBooterPlugin.LOGGER.warn("Not able to reflect ClassInfo#getMixins", e);
                 }
                 if (mixinMetadataBuilder == null) {
                     cir.setReturnValue(cir.getReturnValue() + "\nNo Mixin Metadata is found in the Stacktrace.\n");
