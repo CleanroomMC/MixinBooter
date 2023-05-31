@@ -88,7 +88,7 @@ public class ConfigDecorators {
                     .findFirst()
                     .orElse("unknown");
         }
-        config.decorate(MOD_ID_DECORATOR, value);
+        config.decorate(MIXIN_LOCATION_DECORATOR, value);
         return "unknown".equals(value) ? "unknown-source" : value;
     }
 
