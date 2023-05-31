@@ -48,6 +48,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     @Override
     public void injectData(Map<String, Object> data) {
+        MixinFixer.patchClassInfoCache();
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
             for (Object coremod : (List) coremodList) {
@@ -66,8 +67,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                             }
                         }
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Unexpected error", e);
+                } catch (Throwable t) {
+                    LOGGER.error("Unexpected error", t);
                 }
             }
         }
@@ -86,6 +87,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             meta.modId = "mixinbooter";
             meta.name = "MixinBooter";
             meta.description = "A Mixin library and loader.";
+            meta.credits = "Thanks to LegacyModdingMC for providing the mixin fork: UniMix";
             meta.version = Tags.VERSION;
             meta.logoFile = "/icon.png";
             meta.authorList.add("Rongmario");

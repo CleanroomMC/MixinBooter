@@ -11,10 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.Proxy;
-import zone.rong.mixinbooter.ILateMixinLoader;
-import zone.rong.mixinbooter.MixinBooterPlugin;
-import zone.rong.mixinbooter.MixinLoader;
-import zone.rong.mixinbooter.ConfigDecorators;
+import zone.rong.mixinbooter.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -57,6 +54,11 @@ public class LoadControllerMixin {
                         loader.onMixinConfigQueued(mixinConfig);
                     }
                 }
+            }
+
+            for (String mixinConfig : MixinFixer.retrieveLateMixinConfigs()) {
+                MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration. Which was deferred after intercepting Loader's mixins", mixinConfig);
+                Mixins.addConfiguration(mixinConfig);
             }
 
             ConfigDecorators.prepareASMDataTable();
