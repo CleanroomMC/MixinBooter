@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    compile 'zone.rong:mixinbooter:8.1'
+    compile 'zone.rong:mixinbooter:8.2'
 }
 ```
 
