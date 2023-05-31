@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.transformer.Proxy;
 import zone.rong.mixinbooter.ILateMixinLoader;
 import zone.rong.mixinbooter.MixinBooterPlugin;
 import zone.rong.mixinbooter.MixinLoader;
-import zone.rong.mixinbooter.MixinLocationDecorator;
+import zone.rong.mixinbooter.ConfigDecorators;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -59,12 +59,11 @@ public class LoadControllerMixin {
                 }
             }
 
+            ConfigDecorators.prepareASMDataTable();
+
             for (ModContainer container : this.loader.getActiveModList()) {
                 modClassLoader.addFile(container.getSource());
             }
-
-            // Late configurations get decorated here
-            MixinLocationDecorator.decorate();
 
             Field transformerField = Proxy.class.getDeclaredField("transformer");
             transformerField.setAccessible(true);

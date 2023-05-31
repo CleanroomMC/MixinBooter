@@ -161,6 +161,11 @@ tasks.register('properSourcesJar', Jar) { jar ->
     // Gather all of our own source files
     from sourceSets.main.allSource
 
+    // Gather all of relocated source files
+    from(sourceSets.relocate.allSource) {
+        exclude '**/MemberRef.java'
+    }
+
     // Gather sources of embed dependencies
     configurations.embed.each { dep ->
         fileTree(dep.getParentFile().getParentFile()).matching {

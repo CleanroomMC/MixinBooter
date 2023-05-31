@@ -70,8 +70,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                     LOGGER.error("Unexpected error", e);
                 }
             }
-            // Early configurations get decorated here
-            MixinLocationDecorator.prepareDecoration();
         }
     }
 

@@ -27,10 +27,10 @@ package org.spongepowered.asm.mixin;
 
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.injection.selectors.ISelectorContext;
-import zone.rong.mixinbooter.MixinLocationDecorator;
+import zone.rong.mixinbooter.ConfigDecorators;
 
 public final class FabricUtil {
-    public static final String KEY_MOD_ID = MixinLocationDecorator.MIXIN_LOCATION_DECORATOR;
+    public static final String KEY_MOD_ID = ConfigDecorators.MIXIN_LOCATION_DECORATOR;
     public static final String KEY_COMPATIBILITY = "fabric-compat";
 
     // fabric mixin version compatibility boundaries, (major * 1000 + minor) * 1000 + patch
@@ -43,7 +43,7 @@ public final class FabricUtil {
     }
 
     public static String getModId(IMixinConfig config, String defaultValue) {
-        return MixinLocationDecorator.getDecoratedMixinLocation(config, defaultValue);
+        return ConfigDecorators.getDecoratedModId(config, defaultValue);
     }
 
     public static String getModId(ISelectorContext context) {
