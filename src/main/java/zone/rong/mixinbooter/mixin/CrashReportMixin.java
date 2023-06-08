@@ -40,26 +40,13 @@ public class CrashReportMixin {
                     classInfo$mixins.setAccessible(true);
                     for (String className : classes) {
                         ClassInfo classInfo = ClassInfo.fromCache(className);
-                        if (classInfo != null) {
-                            @SuppressWarnings("unchecked")
-                            Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$mixins.get(classInfo);
-                            if (!mixinInfos.isEmpty()) {
-                                if (mixinMetadataBuilder == null) {
-                                    mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
-                                }
-                                mixinMetadataBuilder.append("\n\t");
-                                mixinMetadataBuilder.append(className);
-                                mixinMetadataBuilder.append(":");
-                                for (IMixinInfo mixinInfo : mixinInfos) {
-                                    mixinMetadataBuilder.append("\n\t\t");
-                                    mixinMetadataBuilder.append(mixinInfo.getClassName());
-                                    mixinMetadataBuilder.append(" (");
-                                    mixinMetadataBuilder.append(mixinInfo.getConfig());
-                                    mixinMetadataBuilder.append(") [");
-                                    mixinMetadataBuilder.append(ConfigDecorators.getDecoratedMixinLocation(mixinInfo));
-                                    mixinMetadataBuilder.append("]");
-                                }
+                        while (classInfo != null) {
+                            mixinMetadataBuilder = findAndAddMixinMetadata(classInfo$mixins, mixinMetadataBuilder, className, classInfo);
+                            className = classInfo.getSuperName();
+                            if (className == null || className.isEmpty() || "java/lang/Object".equals(className)) {
+                                break;
                             }
+                            classInfo = classInfo.getSuperClass();
                         }
                     }
                 } catch (ReflectiveOperationException e) {
@@ -74,6 +61,29 @@ public class CrashReportMixin {
                 cir.setReturnValue(cir.getReturnValue() + "\nFailed to find Mixin Metadata in Stacktrace:\n" + t);
             }
         }
+    }
+
+    private StringBuilder findAndAddMixinMetadata(Field classInfo$mixins, StringBuilder mixinMetadataBuilder, String className, ClassInfo classInfo) throws IllegalAccessException {
+        @SuppressWarnings("unchecked")
+        Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$mixins.get(classInfo);
+        if (!mixinInfos.isEmpty()) {
+            if (mixinMetadataBuilder == null) {
+                mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
+            }
+            mixinMetadataBuilder.append("\n\t");
+            mixinMetadataBuilder.append(className);
+            mixinMetadataBuilder.append(':');
+            for (IMixinInfo mixinInfo : mixinInfos) {
+                mixinMetadataBuilder.append("\n\t\t");
+                mixinMetadataBuilder.append(mixinInfo.getClassName());
+                mixinMetadataBuilder.append(" (");
+                mixinMetadataBuilder.append(mixinInfo.getConfig());
+                mixinMetadataBuilder.append(") [");
+                mixinMetadataBuilder.append(ConfigDecorators.getDecoratedMixinLocation(mixinInfo));
+                mixinMetadataBuilder.append("]");
+            }
+        }
+        return mixinMetadataBuilder;
     }
 
 }
