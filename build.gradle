@@ -10,7 +10,7 @@ plugins {
 
 def coremod_plugin_name = 'zone.rong.mixinbooter.MixinBooterPlugin'
 
-version = '8.2'
+version = '8.3'
 group = 'zone.rong'
 archivesBaseName = 'mixinbooter'
 
@@ -72,7 +72,8 @@ repositories {
 }
 
 dependencies {
-    String mixinDep = modUtils.enableMixins('com.github.LegacyModdingMC:UniMix:0.12.2_mixin.0.8.5')
+    // String mixinDep = modUtils.enableMixins('com.github.LegacyModdingMC:UniMix:0.12.2_mixin.0.8.5')
+    String mixinDep = modUtils.enableMixins('com.github.LoliKingdom:UniMix:delay_fml_remapper-SNAPSHOT')
     mixin (mixinDep) {
         transitive = false
     }
