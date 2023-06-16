@@ -90,6 +90,12 @@ public class MixinFixer {
                 case "mixins.dj2addons.init.json":
                     MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.json");
                     return true;
+                // ErebusFix compatibility
+                case "mixins.loader.json":
+                    if ("noobanidus.mods.erebusfix.mixins".equals(mixinInfo.getConfig().getMixinPackage())) {
+                        MixinFixer.queuedLateMixinConfigs.add("mixins.erebusfix.json");
+                        return true;
+                    }
             }
             return super.add(mixinInfo);
         }
