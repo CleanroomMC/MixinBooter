@@ -23,7 +23,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
     public MixinBooterPlugin() {
-        Launch.classLoader.addTransformerExclusion("scala.");
+        addTransformationExclusions();
         LOGGER.info("Initializing Mixins...");
         MixinBootstrap.init();
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
@@ -77,6 +77,11 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     @Override
     public String getAccessTransformerClass() {
         return null;
+    }
+
+    private void addTransformationExclusions() {
+        Launch.classLoader.addTransformerExclusion("scala.");
+        Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
     }
 
     public static class Container extends DummyModContainer {
