@@ -73,7 +73,7 @@ repositories {
 
 dependencies {
     // String mixinDep = modUtils.enableMixins('com.github.LegacyModdingMC:UniMix:0.12.2_mixin.0.8.5')
-    String mixinDep = modUtils.enableMixins('com.github.LoliKingdom:UniMix:delay_fml_remapper-SNAPSHOT')
+    String mixinDep = modUtils.enableMixins('com.github.LoliKingdom:UniMix:e5ac615a19')
     mixin (mixinDep) {
         transitive = false
     }
@@ -241,7 +241,7 @@ publishing {
             url cleanroom_maven
             credentials {
                 username cleanroom_user
-                password cleanroom_pass
+                credentials PasswordCredentials
             }
         }
     }
