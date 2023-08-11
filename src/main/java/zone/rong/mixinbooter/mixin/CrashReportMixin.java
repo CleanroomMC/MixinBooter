@@ -26,39 +26,50 @@ public class CrashReportMixin {
 
     @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, StringWriter stringwriter, PrintWriter printwriter, Throwable throwable) {
-        StackTraceElement[] stacktrace = throwable.getStackTrace();
-        if (stacktrace.length > 0) {
-            try {
-                StringBuilder mixinMetadataBuilder = null;
-                Set<String> classes = new HashSet<>();
-                for (StackTraceElement stackTraceElement : stacktrace) {
-                    classes.add(stackTraceElement.getClassName());
-                }
-                Field classInfo$mixins;
+        boolean hasErrored = false;
+        StringBuilder mixinMetadataBuilder = null;
+        while (throwable != null) {
+            StackTraceElement[] stacktrace = throwable.getStackTrace();
+            if (stacktrace.length > 0) {
                 try {
-                    classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
-                    classInfo$mixins.setAccessible(true);
-                    for (String className : classes) {
-                        ClassInfo classInfo = ClassInfo.fromCache(className);
-                        while (classInfo != null) {
-                            mixinMetadataBuilder = findAndAddMixinMetadata(classInfo$mixins, mixinMetadataBuilder, className, classInfo);
-                            className = classInfo.getSuperName();
-                            if (className == null || className.isEmpty() || "java/lang/Object".equals(className)) {
-                                break;
-                            }
-                            classInfo = classInfo.getSuperClass();
-                        }
+                    Set<String> classes = new HashSet<>();
+                    for (StackTraceElement stackTraceElement : stacktrace) {
+                        classes.add(stackTraceElement.getClassName());
                     }
-                } catch (ReflectiveOperationException e) {
-                    MixinBooterPlugin.LOGGER.warn("Not able to reflect ClassInfo#getMixins", e);
+                    Field classInfo$mixins;
+                    try {
+                        classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
+                        classInfo$mixins.setAccessible(true);
+                        for (String className : classes) {
+                            ClassInfo classInfo = ClassInfo.fromCache(className);
+                            while (classInfo != null) {
+                                mixinMetadataBuilder = findAndAddMixinMetadata(classInfo$mixins, mixinMetadataBuilder, className, classInfo);
+                                className = classInfo.getSuperName();
+                                if (className == null || className.isEmpty() || "java/lang/Object".equals(className)) {
+                                    break;
+                                }
+                                classInfo = classInfo.getSuperClass();
+                            }
+                        }
+                    } catch (ReflectiveOperationException e) {
+                        MixinBooterPlugin.LOGGER.warn("Not able to reflect ClassInfo#getMixins", e);
+                        throw e;
+                    }
+                } catch (Throwable t) {
+                    cir.setReturnValue(cir.getReturnValue() + "\nFailed to find Mixin Metadata in Stacktrace:\n" + t);
+                    hasErrored = true;
+                } finally {
+                    throwable = throwable.getCause();
                 }
-                if (mixinMetadataBuilder == null) {
-                    cir.setReturnValue(cir.getReturnValue() + "\nNo Mixin Metadata is found in the Stacktrace.\n");
-                } else {
-                    cir.setReturnValue(cir.getReturnValue() + mixinMetadataBuilder);
-                }
-            } catch (Throwable t) {
-                cir.setReturnValue(cir.getReturnValue() + "\nFailed to find Mixin Metadata in Stacktrace:\n" + t);
+            } else {
+                break;
+            }
+        }
+        if (!hasErrored) {
+            if (mixinMetadataBuilder == null) {
+                cir.setReturnValue(cir.getReturnValue() + "\nNo Mixin Metadata is found in the Stacktrace.\n");
+            } else {
+                cir.setReturnValue(cir.getReturnValue() + mixinMetadataBuilder);
             }
         }
     }
