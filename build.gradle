@@ -73,7 +73,7 @@ repositories {
 
 dependencies {
     // String mixinDep = modUtils.enableMixins('com.github.LegacyModdingMC:UniMix:0.12.2_mixin.0.8.5')
-    String mixinDep = modUtils.enableMixins('com.github.LoliKingdom:UniMix:e5ac615a19')
+    String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:main-SNAPSHOT')
     mixin (mixinDep) {
         transitive = false
     }

@@ -9,10 +9,12 @@ import net.minecraftforge.fml.common.ModMetadata;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
 
 import java.lang.reflect.Field;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +26,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public MixinBooterPlugin() {
         addTransformationExclusions();
+        initialize();
         LOGGER.info("Initializing Mixins...");
         MixinBootstrap.init();
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
@@ -84,6 +87,10 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
     }
 
+    private void initialize() {
+        GlobalProperties.put(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS, new HashSet<>());
+    }
+
     public static class Container extends DummyModContainer {
 
         public Container() {
@@ -92,7 +99,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             meta.modId = "mixinbooter";
             meta.name = "MixinBooter";
             meta.description = "A Mixin library and loader.";
-            meta.credits = "Thanks to LegacyModdingMC for providing the mixin fork: UniMix";
+            meta.credits = "Thanks to LegacyModdingMC + Fabric for providing the initial mixin fork.";
             meta.version = Tags.VERSION;
             meta.logoFile = "/icon.png";
             meta.authorList.add("Rongmario");
