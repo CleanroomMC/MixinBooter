@@ -7,9 +7,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.extensibility.IMixinProcessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 import org.spongepowered.asm.mixin.transformer.Proxy;
 import zone.rong.mixinbooter.*;
 
@@ -67,40 +69,10 @@ public class LoadControllerMixin {
                 modClassLoader.addFile(container.getSource());
             }
 
-            Field transformerField = Proxy.class.getDeclaredField("transformer");
-            transformerField.setAccessible(true);
-            Object transformer = transformerField.get(Launch.classLoader.getTransformers().stream().filter(t -> t instanceof Proxy).findFirst().get());
-
-            Class<?> mixinTransformerClass = Class.forName("org.spongepowered.asm.mixin.transformer.MixinTransformer");
-
-            Field processorField = mixinTransformerClass.getDeclaredField("processor");
-            processorField.setAccessible(true);
-            Object processor = processorField.get(transformer);
-
-            Class<?> mixinProcessorClass = Class.forName("org.spongepowered.asm.mixin.transformer.MixinProcessor");
-
-            Method selectConfigsMethod = mixinProcessorClass.getDeclaredMethod("selectConfigs", MixinEnvironment.class);
-            selectConfigsMethod.setAccessible(true);
-
-            MixinEnvironment env = MixinEnvironment.getCurrentEnvironment();
-            selectConfigsMethod.invoke(processor, env);
-
-            try {
-                Method prepareConfigsMethod = mixinProcessorClass.getDeclaredMethod("prepareConfigs", MixinEnvironment.class);
-                prepareConfigsMethod.setAccessible(true);
-                prepareConfigsMethod.invoke(processor, env);
-            } catch (NoSuchMethodException e) { // 0.8.3+
-                Class<?> extensionsClass = Class.forName("org.spongepowered.asm.mixin.transformer.ext.Extensions");
-                Method prepareConfigsMethod = mixinProcessorClass.getDeclaredMethod("prepareConfigs", MixinEnvironment.class, extensionsClass);
-                prepareConfigsMethod.setAccessible(true);
-
-                Field extensionsField = mixinProcessorClass.getDeclaredField("extensions");
-                extensionsField.setAccessible(true);
-                Object extensions = extensionsField.get(processor);
-
-                prepareConfigsMethod.invoke(processor, env, extensions);
-            }
-
+            IMixinProcessor processor = ((IMixinTransformer) Proxy.transformer).getProcessor();
+            Method selectMethod = processor.getClass().getDeclaredMethod("select", MixinEnvironment.class);
+            selectMethod.setAccessible(true);
+            selectMethod.invoke(processor, MixinEnvironment.getCurrentEnvironment());
         }
     }
 
