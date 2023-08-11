@@ -34,7 +34,7 @@ public class CrashReportMixin {
                 try {
                     Set<String> classes = new HashSet<>();
                     for (StackTraceElement stackTraceElement : stacktrace) {
-                        classes.add(stackTraceElement.getClassName());
+                        classes.add(stackTraceElement.getClassName().replace('.', '/'));
                     }
                     Field classInfo$mixins;
                     try {
