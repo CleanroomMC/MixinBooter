@@ -76,6 +76,10 @@ public class MixinFixer {
                     MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.json");
                     unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
                     return true;
+                case "mixins.thaumicfixes.init.json":
+                    MixinFixer.queuedLateMixinConfigs.add("mixins.thaumicfixes.modsupport.json");
+                    unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
+                    return true;
                 // ErebusFix compatibility
                 case "mixins.loader.json":
                     if ("noobanidus.mods.erebusfix.mixins.".equals(mixinInfo.getConfig().getMixinPackage())) {
