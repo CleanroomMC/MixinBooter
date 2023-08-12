@@ -32,6 +32,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
         LOGGER.info("Initializing MixinExtras...");
         MixinExtrasBootstrap.init();
+        MixinFixer.patchAncientModMixinsLoadingMethod();
     }
 
     @Override
@@ -51,7 +52,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     @Override
     public void injectData(Map<String, Object> data) {
-        MixinFixer.patchClassInfoCache();
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
             for (Object coremod : (List) coremodList) {
