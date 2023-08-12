@@ -6,6 +6,7 @@ plugins {
     id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.7'
     id 'com.gtnewhorizons.retrofuturagradle' version '1.3.16'
+    id 'io.github.srdjan-v.local-git-dependency' version '0.5.2' //Expect breaking changes for every new version, except minor ones
 }
 
 def coremod_plugin_name = 'zone.rong.mixinbooter.MixinBooterPlugin'
@@ -73,14 +74,27 @@ repositories {
 
 dependencies {
     // String mixinDep = modUtils.enableMixins('com.github.LegacyModdingMC:UniMix:0.12.2_mixin.0.8.5')
-    String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:1358ec57b2')
-    mixin (mixinDep) {
-        transitive = false
-    }
+    modUtils.enableMixins('com.github.CleanroomMC:UniMix')
     embed 'com.github.LlamaLad7.MixinExtras:mixinextras-common:0.2.0-beta.9'
     annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
     annotationProcessor 'com.google.guava:guava:24.1.1-jre'
     annotationProcessor 'com.google.code.gson:gson:2.8.6'
+}
+
+//This extension will be redone at some point before 1.0.0
+localGitDependency {
+    add('https://github.com/CleanroomMC/UniMix.git', {
+        //setting to false because it will overwrite any local changes trying to keep it up to date with the remote
+        keepGitUpdated false
+        enableIdeSupport true
+        branch "main"
+        configuration({
+            configuration "mixin"
+            closure {
+                transitive = false
+            }
+        })
+    })
 }
 
 processResources {
