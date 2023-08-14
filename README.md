@@ -1,9 +1,9 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [UniMix 0.12.2 (0.8.5 branch by LegacyModdingMC)](https://github.com/LegacyModdingMC/UniMix)
+- Current Mixin Version: [UniMix 0.12.2 forked by CleanroomMC, derived from 0.8.5 branch by LegacyModdingMC](https://github.com/CleanroomMC/UniMix)
 
-- Current MixinExtra Version: [0.2.0-beta.8](https://github.com/LlamaLad7/MixinExtras)
+- Current MixinExtra Version: [0.2.0-beta.9](https://github.com/LlamaLad7/MixinExtras)
 
 ### For Developers:
 
@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    compile 'zone.rong:mixinbooter:8.3'
+    compile 'zone.rong:mixinbooter:8.4'
 }
 ```
 
