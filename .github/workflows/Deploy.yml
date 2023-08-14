@@ -57,7 +57,7 @@ jobs:
       - name: Publish to maven
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: publish # Included build task for required artifact
+          arguments: publish -Pcleanroom_maven=https://repo.cleanroommc.com/releases # Included build task for required artifact
         
       - name: Create simple tags case changer
         id: release_tag
