@@ -252,11 +252,9 @@ publishing {
     }
     repositories {
         maven {
-            url cleanroom_maven
-            credentials {
-                username cleanroom_user
-                credentials PasswordCredentials
-            }
+            name = 'CleanroomMaven'
+            url = cleanroom_maven
+            credentials(PasswordCredentials)
         }
     }
 }
