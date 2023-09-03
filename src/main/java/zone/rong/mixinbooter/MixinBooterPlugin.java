@@ -98,7 +98,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             ModMetadata meta = this.getMetadata();
             meta.modId = "mixinbooter";
             meta.name = "MixinBooter";
-            meta.description = "A Mixin library and loader.";
+            meta.description = "A mod that provides the Sponge Mixin library, a standard API for mods to load mixins targeting Minecraft and other mods, and associated useful utilities on 1.8 - 1.12.2";
             meta.credits = "Thanks to LegacyModdingMC + Fabric for providing the initial mixin fork.";
             meta.version = Tags.VERSION;
             meta.logoFile = "/icon.png";

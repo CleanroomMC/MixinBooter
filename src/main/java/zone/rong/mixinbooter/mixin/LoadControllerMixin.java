@@ -1,6 +1,5 @@
 package zone.rong.mixinbooter.mixin;
 
-import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,8 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 import org.spongepowered.asm.mixin.transformer.Proxy;
 import zone.rong.mixinbooter.*;
+import zone.rong.mixinbooter.decorator.FMLContextQuery;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
@@ -63,7 +62,7 @@ public class LoadControllerMixin {
                 Mixins.addConfiguration(mixinConfig);
             }
 
-            ConfigDecorators.prepareASMDataTable();
+            FMLContextQuery.init(); // Initialize FMLContextQuery and add it to the global list
 
             for (ModContainer container : this.loader.getActiveModList()) {
                 modClassLoader.addFile(container.getSource());

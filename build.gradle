@@ -127,9 +127,7 @@ tasks.register('properJar', Jar) { jar ->
     from sourceSets.main.output
 
     // Gather relocate source set's source files
-    from(sourceSets.relocate.output) {
-        exclude 'org/spongepowered/asm/mixin/struct/MemberRef.class'
-    }
+    from sourceSets.relocate.output
 
     // Gather embed dependencies, while excluding any replaceable files and META-INF services
     from(provider {
@@ -138,7 +136,7 @@ tasks.register('properJar', Jar) { jar ->
                 return it
             } else {
                 zipTree(it).matching {
-                    exclude '**/MemberRef$Handle.class', '**/FabricUtil.class', '**/LICENSE*', 'META-INF/**'
+                    exclude '**/LICENSE*', 'META-INF/**'
                 }
             }
         }

@@ -1,6 +1,7 @@
 package zone.rong.mixinbooter.mixin;
 
 import net.minecraft.crash.CrashReport;
+import org.spongepowered.asm.launch.platform.GlobalMixinContextQuery;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,7 +10,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import zone.rong.mixinbooter.MixinBooterPlugin;
-import zone.rong.mixinbooter.ConfigDecorators;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -90,7 +90,7 @@ public class CrashReportMixin {
                 mixinMetadataBuilder.append(" (");
                 mixinMetadataBuilder.append(mixinInfo.getConfig());
                 mixinMetadataBuilder.append(") [");
-                mixinMetadataBuilder.append(ConfigDecorators.getDecoratedMixinLocation(mixinInfo));
+                mixinMetadataBuilder.append(GlobalMixinContextQuery.location(mixinInfo));
                 mixinMetadataBuilder.append("]");
             }
         }
