@@ -105,6 +105,8 @@ processResources {
 
 tasks.register('properJar', Jar) { jar ->
 
+    group 'build'
+
     // Gather all service files, append them under the same file if possible
     doFirst {
         def serviceDir = file("$buildDir/tmp/services_cleanup/META-INF/services")
@@ -168,6 +170,9 @@ tasks.register('properJar', Jar) { jar ->
 }
 
 tasks.register('properSourcesJar', Jar) { jar ->
+
+    group 'build'
+
     // Sources classifier
     jar.archiveClassifier.set('sources')
 
