@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
-import org.spongepowered.asm.util.PrettyPrinter;
 import zone.rong.mixinbooter.fix.MixinFixer;
 
 import java.lang.reflect.Field;
@@ -75,14 +74,13 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                             }
                         }
                     } else if ("org.spongepowered.mod.SpongeCoremod".equals(theMod.getClass().getName())) {
-                        // Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
+                        Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
                     }
                 } catch (Throwable t) {
                     LOGGER.error("Unexpected error", t);
                 }
             }
         }
-        Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer"); // TODO
     }
 
     @Override
@@ -116,7 +114,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         @Override
         public boolean registerBus(EventBus bus, LoadController controller) {
             bus.register(this);
-            new PrettyPrinter().add(PrettyPrinter.class.getDeclaredMethods()).print(); // DEBUG TODO
             return true;
         }
 
