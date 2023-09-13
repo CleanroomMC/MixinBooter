@@ -1,4 +1,4 @@
-package zone.rong.mixinbooter;
+package zone.rong.mixinbooter.fix;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -14,6 +14,7 @@ import java.util.Set;
 public class MixinFixer {
 
     static Unsafe unsafe;
+    static boolean registered = false;
     static Set<String> queuedLateMixinConfigs = new ObjectOpenHashSet<>();
 
     /**
@@ -25,7 +26,11 @@ public class MixinFixer {
         return ret;
     }
 
-    static void patchAncientModMixinsLoadingMethod() {
+    public static void patchAncientModMixinsLoadingMethod() {
+        if (registered) {
+            return;
+        }
+        registered = true;
         ClassInfo.registerCallback(ci -> {
             if (!ci.isMixin() && "net/minecraftforge/fml/common/Loader".equals(ci.getName())) {
                 try {

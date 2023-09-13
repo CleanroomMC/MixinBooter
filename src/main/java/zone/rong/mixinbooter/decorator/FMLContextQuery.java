@@ -6,6 +6,7 @@ import net.minecraftforge.fml.common.ModAPIManager;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.discovery.ModCandidate;
+import net.minecraftforge.fml.relauncher.CoreModManager;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.extensibility.MixinContextQuery;
 import zone.rong.mixinbooter.MixinBooterPlugin;
@@ -21,10 +22,11 @@ public final class FMLContextQuery extends MixinContextQuery {
 
     public static void init() { }
 
-    private ASMDataTable asmDataTable;
+    private final ASMDataTable asmDataTable;
 
     private FMLContextQuery() {
         super();
+        ASMDataTable asmDataTable = null;
         try {
             Field modApiManager$dataTable = ModAPIManager.class.getDeclaredField("dataTable");
             modApiManager$dataTable.setAccessible(true);
@@ -32,6 +34,7 @@ public final class FMLContextQuery extends MixinContextQuery {
         } catch (ReflectiveOperationException e) {
             MixinBooterPlugin.LOGGER.fatal("Not able to reflect ModAPIManager#dataTable", e);
         }
+        this.asmDataTable = asmDataTable;
     }
 
     private static String getResourceName(IMixinConfig config) {

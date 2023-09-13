@@ -12,6 +12,8 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
+import org.spongepowered.asm.util.PrettyPrinter;
+import zone.rong.mixinbooter.fix.MixinFixer;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
@@ -54,11 +56,14 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     public void injectData(Map<String, Object> data) {
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
+            Field fmlPluginWrapper$coreModInstance = null;
             for (Object coremod : (List) coremodList) {
                 try {
-                    Field field = coremod.getClass().getField("coreModInstance");
-                    field.setAccessible(true);
-                    Object theMod = field.get(coremod);
+                    if (fmlPluginWrapper$coreModInstance == null) {
+                        fmlPluginWrapper$coreModInstance = coremod.getClass().getField("coreModInstance");
+                        fmlPluginWrapper$coreModInstance.setAccessible(true);
+                    }
+                    Object theMod = fmlPluginWrapper$coreModInstance.get(coremod);
                     if (theMod instanceof IEarlyMixinLoader) {
                         IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
                         LOGGER.info("Grabbing {} for its mixins.", loader.getClass());
@@ -69,12 +74,15 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                                 loader.onMixinConfigQueued(mixinConfig);
                             }
                         }
+                    } else if ("org.spongepowered.mod.SpongeCoremod".equals(theMod.getClass().getName())) {
+                        // Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
                     }
                 } catch (Throwable t) {
                     LOGGER.error("Unexpected error", t);
                 }
             }
         }
+        Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer"); // TODO
     }
 
     @Override
@@ -108,6 +116,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         @Override
         public boolean registerBus(EventBus bus, LoadController controller) {
             bus.register(this);
+            new PrettyPrinter().add(PrettyPrinter.class.getDeclaredMethods()).print(); // DEBUG TODO
             return true;
         }
 
