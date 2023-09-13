@@ -87,10 +87,15 @@ public class MixinFixer {
                     return true;
                 // ErebusFix compatibility
                 case "mixins.loader.json":
-                    if ("noobanidus.mods.erebusfix.mixins.".equals(mixinInfo.getConfig().getMixinPackage())) {
-                        MixinFixer.queuedLateMixinConfigs.add("mixins.erebusfix.json");
-                        unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
-                        return true;
+                    switch (mixinInfo.getConfig().getMixinPackage()) {
+                        case "noobanidus.mods.erebusfix.mixins.":
+                            MixinFixer.queuedLateMixinConfigs.add("mixins.erebusfix.json");
+                            unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
+                            return true;
+                        case "doomanidus.mods.uncraftingblacklist.mixins.":
+                            MixinFixer.queuedLateMixinConfigs.add("mixins.uncraftingblacklist.json");
+                            unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
+                            return true;
                     }
             }
             return super.add(mixinInfo);
