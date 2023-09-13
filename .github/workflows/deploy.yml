@@ -6,9 +6,6 @@ on:
       - '[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+'
 
-env:
-  INPUT_CHANGELOG_FILE: .
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,7 +40,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
         with:
           path: build/libs/
 
