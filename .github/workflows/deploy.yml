@@ -7,7 +7,7 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  run:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -16,20 +16,6 @@ jobs:
       - name: Grant Execute Permission for gradlew
         run: chmod +x gradlew
 
-      - name: Read gradle.properties
-        uses: BrycensRanch/read-properties-action@v1
-        id: properties
-        with:
-          file: gradle.properties
-          property: mod_version
-
-      - name: Compare Versioning
-        run: |
-          if [${{ steps.properties.outputs.mod_version != github.ref_name }}]
-          then
-            exit 1
-          fi
-
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -37,7 +23,7 @@ jobs:
           distribution: 'zulu'
           cache: gradle
 
-      - name: Publish to maven
+      - name: Publish to Maven
         uses: gradle/gradle-build-action@v2
         with:
           arguments: |
@@ -50,3 +36,42 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: build/libs/
+  upload:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: build/libs/
+
+      - name: Read CHANGELOG.md
+        id: changelog
+        uses: 3liz/changelog-release@0.2.0
+        with:
+          add_emojis: false
+
+      - name: Publish to CurseForge + Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          name: ${{ steps.properties.outputs.mod_name }} ${{ steps.properties.outputs.mod_version }}
+          version: ${{ steps.properties.outputs.mod_version }}
+          version-type: ${{ steps.properties.outputs.version_type }}
+          changelog: ${{ steps.changelog.outputs.markdown }}
+          loaders: forge
+          game-versions: |
+            [1.8,1.12.2]
+          game-version-filter: releases
+          java: 8
+          files: |
+            build/libs/!(*-@(dev|sources|javadoc)).jar
+            build/libs/*-@(dev).jar
+            build/libs/*-@(sources).jar
+            build/libs/*-@(javadoc).jar
+
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          curseforge-id: 419286
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          modrinth-id: G1ckZuWK
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
