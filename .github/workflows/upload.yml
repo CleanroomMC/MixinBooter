@@ -1,3 +1,5 @@
+name: Upload
+
 on:
   workflow_dispatch:
 
@@ -18,6 +20,10 @@ jobs:
       - name: Read CHANGELOG.md
         id: changelog
         uses: 3liz/changelog-release@0.2.0
+
+      - uses: actions/download-artifact@v3
+        with:
+          path: build/libs/
 
       - name: Upload Mods
         uses: Kir-Antipov/mc-publish@v3.3

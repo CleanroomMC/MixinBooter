@@ -1,9 +1,3 @@
-# Based on https://github.com/CleanroomMC/GroovyScript/blob/63da27acb345aa7af3b8af583cf4c185e0254711/.github/workflows/build.yaml
-# This workflow must be manually triggered. It accepts a version and a release type.
-# First it sets the version in gradle.properties to the new version and pushes it.
-# Then it generates a log, based on commits.
-# After that builds a jar and uploads it to curseforge/modrinth/GitHub releases
-
 name: Deploy
 
 on:
