@@ -1,0 +1,53 @@
+# Based on https://github.com/CleanroomMC/GroovyScript/blob/63da27acb345aa7af3b8af583cf4c185e0254711/.github/workflows/build.yaml
+# This workflow must be manually triggered. It accepts a version and a release type.
+# First it sets the version in gradle.properties to the new version and pushes it.
+# Then it generates a log, based on commits.
+# After that builds a jar and uploads it to curseforge/modrinth/GitHub releases
+
+name: Deploy
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Grant Execute Permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Read gradle.properties
+        uses: BrycensRanch/read-properties-action@v1
+        id: properties
+        with:
+          file: gradle.properties
+          property: mod_version
+
+      - name: Compare Versioning
+        run: |
+          if [${{ steps.properties.outputs.mod_version != github.ref_name }}]
+          then
+            exit 1
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: gradle
+
+      - name: Publish to maven
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: publish -Pcleanroom_maven=${{ vars.CLEANROOM_MAVEN }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: build/libs/

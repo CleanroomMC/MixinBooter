@@ -11,7 +11,7 @@ plugins {
 
 def coremod_plugin_name = 'zone.rong.mixinbooter.MixinBooterPlugin'
 
-version = '8.4'
+version = mod_version
 group = 'zone.rong'
 archivesBaseName = 'mixinbooter'
 
