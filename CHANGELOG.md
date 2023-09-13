@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.5] - 2023-09-13
+
+### Added
+- Implemented FMLContextQuery, and MixinContextQuery which is extensible for different platforms
+
+### Changed
+- Better description for the mod
+
+### Fixed
+- Made SpongeForge's PrettyPrinter backwards-compatible, more fixes may follow up if bugs are found
+- Compatibility with Uncrafting Blacklist
+
 ## [8.4] - 2023-08-12
 
 ### Changed
