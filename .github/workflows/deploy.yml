@@ -44,6 +44,13 @@ jobs:
         with:
           path: build/libs/
 
+      - name: Read gradle.properties
+        uses: BrycensRanch/read-properties-action@v1
+        id: properties
+        with:
+          file: gradle.properties
+          all: true
+
       - name: Read CHANGELOG.md
         id: changelog
         uses: 3liz/changelog-release@0.2.0
