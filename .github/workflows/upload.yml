@@ -10,6 +10,9 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Read gradle.properties
         uses: BrycensRanch/read-properties-action@v1
         id: properties
