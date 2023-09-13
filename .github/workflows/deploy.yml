@@ -45,8 +45,6 @@ jobs:
 
       - name: Download Artifacts
         uses: actions/download-artifact@v3
-        with:
-          path: build/libs/
 
       - name: Read gradle.properties
         uses: BrycensRanch/read-properties-action@v1
@@ -74,10 +72,10 @@ jobs:
           game-version-filter: releases
           java: 8
           files: |
-            build/libs/!(*-@(dev|sources|javadoc)).jar
-            build/libs/*-@(dev).jar
-            build/libs/*-@(sources).jar
-            build/libs/*-@(javadoc).jar
+            artifact/!(*-@(dev|sources|javadoc)).jar
+            artifact/*-@(dev).jar
+            artifact/*-@(sources).jar
+            artifact/*-@(javadoc).jar
 
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
