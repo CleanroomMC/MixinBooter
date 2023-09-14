@@ -3,9 +3,11 @@ package zone.rong.mixinbooter;
 import com.google.common.eventbus.EventBus;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.common.DummyModContainer;
-import net.minecraftforge.fml.common.LoadController;
-import net.minecraftforge.fml.common.ModMetadata;
+import net.minecraftforge.fml.common.*;
+import net.minecraftforge.fml.common.versioning.ArtifactVersion;
+import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
+import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
+import net.minecraftforge.fml.common.versioning.VersionRange;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,9 +17,7 @@ import org.spongepowered.asm.mixin.Mixins;
 import zone.rong.mixinbooter.fix.MixinFixer;
 
 import java.lang.reflect.Field;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
@@ -101,9 +101,10 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
         public Container() {
             super(new ModMetadata());
+            MixinBooterPlugin.LOGGER.info("Initializing MixinBooter's Mod Container.");
             ModMetadata meta = this.getMetadata();
-            meta.modId = "mixinbooter";
-            meta.name = "MixinBooter";
+            meta.modId = Tags.MOD_ID;
+            meta.name = Tags.MOD_NAME;
             meta.description = "A mod that provides the Sponge Mixin library, a standard API for mods to load mixins targeting Minecraft and other mods, and associated useful utilities on 1.8 - 1.12.2";
             meta.credits = "Thanks to LegacyModdingMC + Fabric for providing the initial mixin fork.";
             meta.version = Tags.VERSION;
@@ -115,6 +116,41 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         public boolean registerBus(EventBus bus, LoadController controller) {
             bus.register(this);
             return true;
+        }
+
+        @Override
+        public Set<ArtifactVersion> getRequirements() {
+            try {
+                return Collections.singleton(new SpongeForgeArtifactVersion());
+            } catch (InvalidVersionSpecificationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        // Thank you SpongeForge ^_^
+        private static class SpongeForgeArtifactVersion extends DefaultArtifactVersion {
+
+            public SpongeForgeArtifactVersion() throws InvalidVersionSpecificationException {
+                super("spongeforge", VersionRange.createFromVersionSpec("[7.4.8,)"));
+            }
+
+            @Override
+            public boolean containsVersion(ArtifactVersion source) {
+                if (source == this) {
+                    return true;
+                }
+                String version = source.getVersionString();
+                String[] hyphenSplits = version.split("-");
+                if (hyphenSplits.length > 1) {
+                    if (hyphenSplits[hyphenSplits.length - 1].startsWith("RC")) {
+                        version = hyphenSplits[hyphenSplits.length - 2];
+                    } else {
+                        version = hyphenSplits[hyphenSplits.length - 1];
+                    }
+                }
+                source = new DefaultArtifactVersion(source.getLabel(), version);
+                return super.containsVersion(source);
+            }
         }
 
     }

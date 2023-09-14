@@ -38,6 +38,8 @@ minecraft {
     ])
     extraTweakClasses.add('org.spongepowered.asm.launch.MixinTweaker')
     injectedTags.put('VERSION', project.version)
+    injectedTags.put('MOD_ID', project.archivesBaseName)
+    injectedTags.put('MOD_NAME', project.mod_name)
 }
 
 tasks.injectTags.configure {
@@ -83,9 +85,17 @@ dependencies {
 }
 
 processResources {
-    // This will ensure that this task is redone when the versions change.
-    inputs.property 'version', project.version
-    inputs.property 'mcversion', project.minecraft.version
+    inputs.property 'mod_version', project.version
+    inputs.property 'mod_id', project.archivesBaseName
+    inputs.property 'mod_name', project.mod_name
+
+    filesMatching('mcmod.info') {
+        expand(
+                'mod_version': project.version,
+                'mod_id': project.archivesBaseName,
+                'mod_name': project.mod_name,
+        )
+    }
 }
 
 tasks.register('properJar', Jar) { jar ->
