@@ -1,5 +1,16 @@
 # Changelog
 
+## [8.6] - 2023-09-14
+
+### Added
+- Added a dummy mcmod.info
+
+### Changed
+- Only allowing SpongeForge 7.4.8+ from loading with MixinBooter.
+
+### Fixed
+- Fixed issue with Modrinth uploads (not allowing forge mods without mcmod.info packaged to be uploaded)
+
 ## [8.5] - 2023-09-13
 
 ### Added

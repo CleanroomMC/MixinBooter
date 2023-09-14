@@ -9,7 +9,7 @@
 
 - Add CleanroomMC's repository and depend on MixinBooter's maven entry:
 
-```
+```groovy
 repositories {
     maven {
         url 'https://maven.cleanroommc.com'
@@ -17,7 +17,20 @@ repositories {
 }
 
 dependencies {
-    compile 'zone.rong:mixinbooter:8.5'
+
+    // ForgeGradle:
+    implementation 'zone.rong:mixinbooter:8.6'
+    annotationProcessor 'zone.rong:mixinbooter:8.6'
+    
+    // RetroFuturaGradle:
+    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:8.6')
+    // modUtils.enableMixins('zone.rong:mixinbooter:8.6', "mod_id.mixins.refmap.json") << add refmap name as 2nd arg (optional)
+    api (mixinBooter) {
+        transitive = false
+    }
+    annotationProcessor (mixinBooter) {
+        transitive = false
+    }
 }
 ```
 
@@ -28,6 +41,8 @@ dependencies {
 - As of 5.0, [MixinExtras by @LlamaLad7](https://github.com/LlamaLad7/MixinExtras) is shaded. Available for developers to use.
 
 - As of 8.0, MixinBooter will now work from 1.8 - 1.12.2. One single build works with all these versions! (TODO: LiteLoader support?)
+
+- As of 8.4, MixinBooter actively attempts to be compatible with [SpongeForge](https://github.com/SpongePowered/SpongeForge)
 
 ### Tidbits:
 
