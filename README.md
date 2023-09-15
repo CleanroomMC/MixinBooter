@@ -18,9 +18,18 @@ repositories {
 
 dependencies {
 
+    // Common:
+    annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
+    annotationProcessor 'com.google.guava:guava:30'
+    annotationProcessor 'com.google.code.gson:gson:2.8.9'
+
     // ForgeGradle:
-    implementation 'zone.rong:mixinbooter:8.6'
-    annotationProcessor 'zone.rong:mixinbooter:8.6'
+    implementation ('zone.rong:mixinbooter:8.6) {
+        transitive = false
+    }
+    annotationProcessor ('zone.rong:mixinbooter:8.6') {
+        transitive = false
+    }
     
     // RetroFuturaGradle:
     String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:8.6')
