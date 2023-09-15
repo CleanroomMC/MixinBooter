@@ -20,7 +20,7 @@ dependencies {
 
     // Common:
     annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
-    annotationProcessor 'com.google.guava:guava:30'
+    annotationProcessor 'com.google.guava:guava:32.1.2-jre'
     annotationProcessor 'com.google.code.gson:gson:2.8.9'
 
     // ForgeGradle:
