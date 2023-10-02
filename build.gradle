@@ -74,11 +74,13 @@ repositories {
 }
 
 dependencies {
+    // embed order matters, we want MixinSquared to go first
+    embed 'com.github.bawnorton.mixinsquared:mixinsquared-common:0.1.1'
+    embed 'com.github.LlamaLad7.MixinExtras:mixinextras-common:0.2.0-beta.9'
     String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:0444899b0c')
     mixin (mixinDep) {
         transitive = false
     }
-    embed 'com.github.LlamaLad7.MixinExtras:mixinextras-common:0.2.0-beta.9'
     annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
     annotationProcessor 'com.google.guava:guava:24.1.1-jre'
     annotationProcessor 'com.google.code.gson:gson:2.8.6'
@@ -104,14 +106,13 @@ tasks.register('properJar', Jar) { jar ->
 
     // Gather all service files, append them under the same file if possible
     doFirst {
-        def serviceDir = file("$buildDir/tmp/services_cleanup/META-INF/services")
+        File serviceDir = file("$buildDir/tmp/services_cleanup/META-INF/services")
         serviceDir.deleteDir()
         serviceDir.mkdirs()
-
         configurations.embed.each { file ->
             zipTree(file).matching {
                 include 'META-INF/services/*'
-            }.each { serviceFile ->
+            }.each { File serviceFile ->
                 new File(serviceDir, serviceFile.name) << serviceFile.getText("UTF-8") << '\n'
             }
         }
