@@ -1,9 +1,11 @@
 package zone.rong.mixinbooter.fix;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import net.minecraft.launchwrapper.Launch;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import sun.misc.Unsafe;
+import zone.rong.mixinbooter.MixinBooterPlugin;
 
 import java.lang.reflect.Field;
 import java.util.AbstractList;
@@ -77,7 +79,16 @@ public class MixinFixer {
                     unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
                     return true;
                 // DJ2 Addons compatibility
-                case "mixins.dj2addons.init.json":
+                case "mixins.dj2addons.bootstrap.json":
+                    MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.def.api.json");
+                    MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.def.custom.json");
+                    MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.def.optimizations.json");
+                    MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.def.patches.json");
+                    MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.def.tweaks.json");
+                    unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
+                    correctingDj2Addons();
+                    return true;
+                case "mixins.dj2addons.init.json": // Backwards Compat
                     MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.json");
                     unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
                     return true;
@@ -99,6 +110,17 @@ public class MixinFixer {
                     }
             }
             return super.add(mixinInfo);
+        }
+
+        private void correctingDj2Addons() {
+            // If you're bored and want to be enlightened, start here:
+            // https://discord.com/channels/926486493562814515/926783373232447509/1168057816691507260
+            try {
+                Class.forName("btpos.dj2addons.common.CoreInfo", true, Launch.classLoader).getMethod("onLoadCore").invoke(null);
+                MixinBooterPlugin.LOGGER.fatal("DJ2Addons compatibility patch successful.");
+            } catch (ReflectiveOperationException e) {
+                MixinBooterPlugin.LOGGER.fatal("DJ2Addons compatibility patch failed.", e);
+            }
         }
 
     }
