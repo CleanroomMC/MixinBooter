@@ -91,6 +91,7 @@ public class MixinFixer {
                 case "mixins.dj2addons.init.json": // Backwards Compat
                     MixinFixer.queuedLateMixinConfigs.add("mixins.dj2addons.json");
                     unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
+                    correctingDj2Addons();
                     return true;
                 case "mixins.thaumicfixes.init.json":
                     MixinFixer.queuedLateMixinConfigs.add("mixins.thaumicfixes.modsupport.json");
@@ -116,10 +117,17 @@ public class MixinFixer {
             // If you're bored and want to be enlightened, start here:
             // https://discord.com/channels/926486493562814515/926783373232447509/1168057816691507260
             try {
+                // New (unreleased)
                 Class.forName("btpos.dj2addons.common.CoreInfo", true, Launch.classLoader).getMethod("onLoadCore").invoke(null);
-                MixinBooterPlugin.LOGGER.fatal("DJ2Addons compatibility patch successful.");
-            } catch (ReflectiveOperationException e) {
-                MixinBooterPlugin.LOGGER.fatal("DJ2Addons compatibility patch failed.", e);
+            } catch (ReflectiveOperationException e1) {
+                try {
+                    // CurseForge release (older)
+                    Class.forName("org.btpos.dj2addons.core.DJ2AddonsCore", true, Launch.classLoader).getMethod("onLoadCore").invoke(null);
+                } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
+                    // Skip when no classes are found, that cannot be the case unless an old dj2addons is installed
+                } catch (ReflectiveOperationException e2) {
+                    MixinBooterPlugin.LOGGER.fatal("DJ2Addons compatibility patch failed.", e2);
+                }
             }
         }
 
