@@ -51,7 +51,7 @@ public class MixinFixer {
     private static class NotifiableMixinSet extends HashSet<IMixinInfo> {
 
         private static Field mixinInfo$targetClassNames;
-        long mixinInfo$targetClassNames$offset = 0L;
+        static long mixinInfo$targetClassNames$offset = 0L;
 
         @Override
         public boolean add(IMixinInfo mixinInfo) {
