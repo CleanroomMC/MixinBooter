@@ -1,5 +1,10 @@
 # Changelog
 
+## [8.7] - 2023-10-30
+
+### Fixed
+- Fixed issues with different builds of DJ2Addons.
+
 ## [8.6] - 2023-09-14
 
 ### Added
