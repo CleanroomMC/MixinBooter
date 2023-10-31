@@ -33,19 +33,32 @@ public class LoadControllerMixin {
             ModClassLoader modClassLoader = (ModClassLoader) eventData[0];
             ASMDataTable asmDataTable = (ASMDataTable) eventData[1];
 
-            MixinBooterPlugin.LOGGER.info("Instantiating all MixinLoader annotated classes...");
+            // Add mods into the delegated ModClassLoader
+            for (ModContainer container : this.loader.getActiveModList()) {
+                modClassLoader.addFile(container.getSource());
+            }
 
+            FMLContextQuery.init(); // Initialize FMLContextQuery and add it to the global list
+            boolean log = false;
+
+            // Instantiate all @MixinLoader annotated classes
             for (ASMDataTable.ASMData asmData : asmDataTable.getAll(MixinLoader.class.getName())) {
-                modClassLoader.addFile(asmData.getCandidate().getModContainer()); // Add to path before `newInstance`
+                if (!log) {
+                    MixinBooterPlugin.LOGGER.info("Instantiating all MixinLoader annotated classes...");
+                    log = true;
+                }
                 Class<?> clazz = Class.forName(asmData.getClassName());
                 MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
                 clazz.newInstance();
             }
+            log = false;
 
-            MixinBooterPlugin.LOGGER.info("Instantiating all ILateMixinLoader implemented classes...");
-
+            // Instantiate all ILateMixinLoader implemented classes
             for (ASMDataTable.ASMData asmData : asmDataTable.getAll(ILateMixinLoader.class.getName().replace('.', '/'))) {
-                modClassLoader.addFile(asmData.getCandidate().getModContainer()); // Add to path before `newInstance`
+                if (!log) {
+                    MixinBooterPlugin.LOGGER.info("Instantiating all ILateMixinLoader implemented classes...");
+                    log = true;
+                }
                 Class<?> clazz = Class.forName(asmData.getClassName().replace('/', '.'));
                 MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
                 ILateMixinLoader loader = (ILateMixinLoader) clazz.newInstance();
@@ -57,16 +70,16 @@ public class LoadControllerMixin {
                     }
                 }
             }
+            log = false;
 
+            // Append all non-conventional mixin configurations gathered via MixinFixer
             for (String mixinConfig : MixinFixer.retrieveLateMixinConfigs()) {
-                MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration. Which was deferred after intercepting Loader's mixins", mixinConfig);
+                if (!log) {
+                    MixinBooterPlugin.LOGGER.info("Appending non-conventional mixin configurations...");
+                    log = true;
+                }
+                MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration.", mixinConfig);
                 Mixins.addConfiguration(mixinConfig);
-            }
-
-            FMLContextQuery.init(); // Initialize FMLContextQuery and add it to the global list
-
-            for (ModContainer container : this.loader.getActiveModList()) {
-                modClassLoader.addFile(container.getSource());
             }
 
             IMixinProcessor processor = ((IMixinTransformer) Proxy.transformer).getProcessor();
