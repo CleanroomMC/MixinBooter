@@ -1,5 +1,14 @@
 # Changelog
 
+## [8.8] - 2023-10-31
+
+### Changed
+- Logging during mod gathering
+
+### Fixed
+- Optimized mod gathering
+- Fixed delegated transformers not being rebuild before late mixins are loaded. Resulting in transformers that are registered later not properly running
+
 ## [8.7] - 2023-10-30
 
 ### Fixed
