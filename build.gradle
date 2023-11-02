@@ -78,7 +78,7 @@ dependencies {
     mixin (mixinDep) {
         transitive = false
     }
-    embed 'com.github.LlamaLad7.MixinExtras:mixinextras-common:0.2.0-beta.9'
+    embed 'com.github.LlamaLad7.MixinExtras:mixinextras-common:0.2.1-beta.2'
     annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
     annotationProcessor 'com.google.guava:guava:24.1.1-jre'
     annotationProcessor 'com.google.code.gson:gson:2.8.6'
