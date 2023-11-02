@@ -1,5 +1,10 @@
 # Changelog
 
+## [8.9] - 2023-11-02
+
+### Changed
+- Updated MixinExtras from 0.2.0-beta.9 to 0.2.1-beta.2, now supports wrapping of object instantiations with `@WrapOperation`
+
 ## [8.8] - 2023-10-31
 
 ### Changed
