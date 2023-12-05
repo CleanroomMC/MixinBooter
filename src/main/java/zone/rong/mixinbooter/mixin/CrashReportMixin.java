@@ -3,6 +3,7 @@ package zone.rong.mixinbooter.mixin;
 import net.minecraft.crash.CrashReport;
 import org.spongepowered.asm.launch.platform.GlobalMixinContextQuery;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -14,8 +15,7 @@ import zone.rong.mixinbooter.MixinBooterPlugin;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Mixin that allows CrashReports to be appended with mixin information.
@@ -26,61 +26,58 @@ public class CrashReportMixin {
 
     @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, StringWriter stringwriter, PrintWriter printwriter, Throwable throwable) {
-        boolean hasErrored = false;
-        StringBuilder mixinMetadataBuilder = null;
-        while (throwable != null) {
-            StackTraceElement[] stacktrace = throwable.getStackTrace();
-            if (stacktrace.length > 0) {
-                try {
-                    Set<String> classes = new HashSet<>();
-                    for (StackTraceElement stackTraceElement : stacktrace) {
-                        classes.add(stackTraceElement.getClassName().replace('.', '/'));
+        try {
+            Field classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
+            classInfo$mixins.setAccessible(true);
+            Map<String, ClassInfo> classes = new LinkedHashMap<>();
+            while (throwable != null) {
+                if (throwable instanceof NoClassDefFoundError) {
+                    ClassInfo classInfo = ClassInfo.fromCache(throwable.getMessage());
+                    if (classInfo != null) {
+                        classes.put(throwable.getMessage(), classInfo);
                     }
-                    Field classInfo$mixins;
-                    try {
-                        classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
-                        classInfo$mixins.setAccessible(true);
-                        for (String className : classes) {
-                            ClassInfo classInfo = ClassInfo.fromCache(className);
-                            while (classInfo != null) {
-                                mixinMetadataBuilder = findAndAddMixinMetadata(classInfo$mixins, mixinMetadataBuilder, className, classInfo);
-                                className = classInfo.getSuperName();
-                                if (className == null || className.isEmpty() || "java/lang/Object".equals(className)) {
-                                    break;
-                                }
-                                classInfo = classInfo.getSuperClass();
-                            }
-                        }
-                    } catch (ReflectiveOperationException e) {
-                        MixinBooterPlugin.LOGGER.warn("Not able to reflect ClassInfo#getMixins", e);
-                        throw e;
-                    }
-                } catch (Throwable t) {
-                    cir.setReturnValue(cir.getReturnValue() + "\nFailed to find Mixin Metadata in Stacktrace:\n" + t);
-                    hasErrored = true;
-                } finally {
-                    throwable = throwable.getCause();
                 }
-            } else {
-                break;
+                StackTraceElement[] stacktrace = throwable.getStackTrace();
+                for (StackTraceElement stackTraceElement : stacktrace) {
+                    String className = stackTraceElement.getClassName().replace('.', '/');
+                    if (classes.containsKey(className)) {
+                        ClassInfo classInfo = ClassInfo.fromCache(className);
+                        while (classInfo != null) {
+                            classes.put(className, classInfo);
+                            className = classInfo.getSuperName();
+                            if (className == null || className.isEmpty() || "java/lang/Object".equals(className)) {
+                                break;
+                            }
+                            classInfo = classInfo.getSuperClass();
+                        }
+                    }
+                }
+                throwable = throwable.getCause();
             }
-        }
-        if (!hasErrored) {
-            if (mixinMetadataBuilder == null) {
+            if (classes.isEmpty()) {
                 cir.setReturnValue(cir.getReturnValue() + "\nNo Mixin Metadata is found in the Stacktrace.\n");
             } else {
-                cir.setReturnValue(cir.getReturnValue() + mixinMetadataBuilder);
+                StringBuilder mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
+                boolean addedMetadata = false;
+                for (Map.Entry<String, ClassInfo> entry : classes.entrySet()) {
+                    addedMetadata |= mixinbooter$findAndAddMixinMetadata(mixinMetadataBuilder, entry.getKey(), entry.getValue());
+                }
+                if (addedMetadata) {
+                    cir.setReturnValue(cir.getReturnValue() + mixinMetadataBuilder);
+                } else {
+                    cir.setReturnValue(cir.getReturnValue() + "\nNo Mixin Metadata is found in the Stacktrace.\n");
+                }
             }
+        } catch (Throwable t) {
+            MixinBooterPlugin.LOGGER.fatal("Unable to gather mixin metadata from the stacktrace", t);
+            cir.setReturnValue(cir.getReturnValue() + "\nFailed to find Mixin Metadata in Stacktrace due to exception: " + t);
         }
     }
 
-    private StringBuilder findAndAddMixinMetadata(Field classInfo$mixins, StringBuilder mixinMetadataBuilder, String className, ClassInfo classInfo) throws IllegalAccessException {
-        @SuppressWarnings("unchecked")
-        Set<IMixinInfo> mixinInfos = (Set<IMixinInfo>) classInfo$mixins.get(classInfo);
+    @Unique
+    private boolean mixinbooter$findAndAddMixinMetadata(StringBuilder mixinMetadataBuilder, String className, ClassInfo classInfo) throws IllegalAccessException {
+        Set<IMixinInfo> mixinInfos = classInfo.getApplicableMixins();
         if (!mixinInfos.isEmpty()) {
-            if (mixinMetadataBuilder == null) {
-                mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
-            }
             mixinMetadataBuilder.append("\n\t");
             mixinMetadataBuilder.append(className);
             mixinMetadataBuilder.append(':');
@@ -93,8 +90,9 @@ public class CrashReportMixin {
                 mixinMetadataBuilder.append(GlobalMixinContextQuery.location(mixinInfo));
                 mixinMetadataBuilder.append("]");
             }
+            return true;
         }
-        return mixinMetadataBuilder;
+        return false;
     }
 
 }

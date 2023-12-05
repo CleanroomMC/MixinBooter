@@ -74,7 +74,7 @@ repositories {
 }
 
 dependencies {
-    String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:0444899b0c')
+    String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:93c1951ad2')
     mixin (mixinDep) {
         transitive = false
     }

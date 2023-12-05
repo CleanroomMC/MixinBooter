@@ -97,13 +97,14 @@ public class MixinFixer {
                     MixinFixer.queuedLateMixinConfigs.add("mixins.thaumicfixes.modsupport.json");
                     unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
                     return true;
-                // ErebusFix compatibility
                 case "mixins.loader.json":
                     switch (mixinInfo.getConfig().getMixinPackage()) {
+                        // ErebusFix compatibility
                         case "noobanidus.mods.erebusfix.mixins.":
                             MixinFixer.queuedLateMixinConfigs.add("mixins.erebusfix.json");
                             unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
                             return true;
+                        // Uncrafting Blacklist compatibility
                         case "doomanidus.mods.uncraftingblacklist.mixins.":
                             MixinFixer.queuedLateMixinConfigs.add("mixins.uncraftingblacklist.json");
                             unsafe.putObject(mixinInfo, mixinInfo$targetClassNames$offset, new EmptyAbsorbingList());
