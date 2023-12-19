@@ -2,38 +2,22 @@ package zone.rong.mixinbooter.decorator;
 
 import com.google.common.base.Strings;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.common.ModAPIManager;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.discovery.ModCandidate;
-import net.minecraftforge.fml.relauncher.CoreModManager;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.extensibility.MixinContextQuery;
-import zone.rong.mixinbooter.MixinBooterPlugin;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Set;
 
 public final class FMLContextQuery extends MixinContextQuery {
 
-    private static final FMLContextQuery INSTANCE = new FMLContextQuery();
-
-    public static void init() { }
-
     private final ASMDataTable asmDataTable;
 
-    private FMLContextQuery() {
+    public FMLContextQuery(ASMDataTable asmDataTable) {
         super();
-        ASMDataTable asmDataTable = null;
-        try {
-            Field modApiManager$dataTable = ModAPIManager.class.getDeclaredField("dataTable");
-            modApiManager$dataTable.setAccessible(true);
-            asmDataTable = (ASMDataTable) modApiManager$dataTable.get(ModAPIManager.INSTANCE);
-        } catch (ReflectiveOperationException e) {
-            MixinBooterPlugin.LOGGER.fatal("Not able to reflect ModAPIManager#dataTable", e);
-        }
         this.asmDataTable = asmDataTable;
     }
 

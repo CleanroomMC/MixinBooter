@@ -41,7 +41,6 @@ public class LoadControllerMixin {
                 modClassLoader.addFile(container.getSource());
             }
 
-            FMLContextQuery.init(); // Initialize FMLContextQuery and add it to the global list
             boolean log = false;
 
             // Instantiate all @MixinLoader annotated classes
