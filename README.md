@@ -3,7 +3,7 @@
 
 - Current Mixin Version: [UniMix 0.12.2 forked by CleanroomMC, derived from 0.8.5 branch by LegacyModdingMC](https://github.com/CleanroomMC/UniMix)
 
-- Current MixinExtra Version: [0.2.1-beta.2](https://github.com/LlamaLad7/MixinExtras)
+- Current MixinExtra Version: [0.3.5](https://github.com/LlamaLad7/MixinExtras)
 
 ### For Developers:
 
@@ -24,16 +24,16 @@ dependencies {
     annotationProcessor 'com.google.code.gson:gson:2.8.9'
 
     // ForgeGradle:
-    implementation ('zone.rong:mixinbooter:8.9') {
+    implementation ('zone.rong:mixinbooter:9.0') {
         transitive = false
     }
-    annotationProcessor ('zone.rong:mixinbooter:8.9') {
+    annotationProcessor ('zone.rong:mixinbooter:9.0') {
         transitive = false
     }
     
     // RetroFuturaGradle:
-    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:8.9')
-    // modUtils.enableMixins('zone.rong:mixinbooter:8.9', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
+    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:9.0')
+    // modUtils.enableMixins('zone.rong:mixinbooter:9.0', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
     api (mixinBooter) {
         transitive = false
     }
