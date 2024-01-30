@@ -1,5 +1,16 @@
 # Changelog
 
+## [9.0] - 2024-01-30
+
+### Added
+- `IMixinConfigHijacker` API, allows denial of mixin configurations from being applied (idea: @Desoroxxx)
+
+### Changed
+- Updated MixinExtras to 0.3.5
+
+### Fixed
+- Mixin information being duplicated in crash reports in certain situations
+
 ## [8.9] - 2023-11-02
 
 ### Changed
