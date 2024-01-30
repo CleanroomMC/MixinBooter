@@ -56,6 +56,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
             Field fmlPluginWrapper$coreModInstance = null;
+            Map<String, IMixinConfigHijacker> hijackers = new HashMap<>();
+            Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
             for (Object coremod : (List) coremodList) {
                 try {
                     if (fmlPluginWrapper$coreModInstance == null) {
@@ -63,21 +65,35 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                         fmlPluginWrapper$coreModInstance.setAccessible(true);
                     }
                     Object theMod = fmlPluginWrapper$coreModInstance.get(coremod);
+                    if (theMod instanceof IMixinConfigHijacker) {
+                        IMixinConfigHijacker interceptor = (IMixinConfigHijacker) theMod;
+                        for (String hijacked : interceptor.getHijackedMixinConfigs()) {
+                            hijackers.put(hijacked, interceptor);
+                        }
+                    }
                     if (theMod instanceof IEarlyMixinLoader) {
                         IEarlyMixinLoader loader = (IEarlyMixinLoader) theMod;
                         LOGGER.info("Grabbing {} for its mixins.", loader.getClass());
-                        for (String mixinConfig : loader.getMixinConfigs()) {
-                            if (loader.shouldMixinConfigQueue(mixinConfig)) {
-                                LOGGER.info("Adding {} mixin configuration.", mixinConfig);
-                                Mixins.addConfiguration(mixinConfig);
-                                loader.onMixinConfigQueued(mixinConfig);
-                            }
-                        }
+                        queuedLoaders.add(loader);
                     } else if ("org.spongepowered.mod.SpongeCoremod".equals(theMod.getClass().getName())) {
                         Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
                     }
                 } catch (Throwable t) {
                     LOGGER.error("Unexpected error", t);
+                }
+            }
+            for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
+                for (String mixinConfig : queuedLoader.getMixinConfigs()) {
+                    if (queuedLoader.shouldMixinConfigQueue(mixinConfig)) {
+                        IMixinConfigHijacker hijacker = hijackers.get(mixinConfig);
+                        if (hijacker != null) {
+                            LOGGER.info("Mixin configuration [{}] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
+                        } else {
+                            LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                            Mixins.addConfiguration(mixinConfig);
+                            queuedLoader.onMixinConfigQueued(mixinConfig);
+                        }
+                    }
                 }
             }
         }
