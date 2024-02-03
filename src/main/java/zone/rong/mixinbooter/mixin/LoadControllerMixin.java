@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.transformer.Proxy;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.service.mojang.MixinServiceLaunchWrapper;
 import zone.rong.mixinbooter.*;
-import zone.rong.mixinbooter.decorator.FMLContextQuery;
 import zone.rong.mixinbooter.fix.MixinFixer;
 
 import java.lang.reflect.Field;

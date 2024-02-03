@@ -1,6 +1,5 @@
 package zone.rong.mixinbooter.fix;
 
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.launchwrapper.Launch;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
@@ -17,7 +16,7 @@ public class MixinFixer {
 
     static Unsafe unsafe;
     static boolean registered = false;
-    static Set<String> queuedLateMixinConfigs = new ObjectOpenHashSet<>();
+    static Set<String> queuedLateMixinConfigs = new HashSet<>();
 
     /**
      * For internal usage
