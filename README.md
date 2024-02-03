@@ -24,16 +24,16 @@ dependencies {
     annotationProcessor 'com.google.code.gson:gson:2.8.9'
 
     // ForgeGradle:
-    implementation ('zone.rong:mixinbooter:9.0') {
+    implementation ('zone.rong:mixinbooter:9.1') {
         transitive = false
     }
-    annotationProcessor ('zone.rong:mixinbooter:9.0') {
+    annotationProcessor ('zone.rong:mixinbooter:9.1') {
         transitive = false
     }
     
     // RetroFuturaGradle:
-    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:9.0')
-    // modUtils.enableMixins('zone.rong:mixinbooter:9.0', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
+    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:9.1')
+    // modUtils.enableMixins('zone.rong:mixinbooter:9.1', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
     api (mixinBooter) {
         transitive = false
     }
