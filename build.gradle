@@ -180,13 +180,21 @@ tasks.register('properSourcesJar', Jar) { jar ->
     }
 
     // Gather sources of embed dependencies
-    configurations.embed.each { dep ->
-        fileTree(dep.getParentFile().getParentFile()).matching {
-            include '**/*-sources.jar'
-        }.each { sources ->
-            from zipTree(sources).matching {
-                include '**/*.java'
-                exclude '**/MemberRef$Handle.java', '**/FabricUtil.java'
+    def componentIds = configurations.embed.incoming.resolutionResult.allDependencies.collect { it.selected.id }
+    ArtifactResolutionResult result = dependencies.createArtifactResolutionQuery()
+            .forComponents(componentIds)
+            .withArtifacts(JvmLibrary, SourcesArtifact)
+            .execute()
+    result.resolvedComponents.each { ComponentArtifactsResult component ->
+        Set<ArtifactResult> sources = component.getArtifacts(SourcesArtifact)
+        sources.each { ArtifactResult ar ->
+            if (ar instanceof ResolvedArtifactResult) {
+                fileTree(ar.file).each { sourceFiles ->
+                    from zipTree(sourceFiles).matching {
+                        include '**/*.java'
+                        exclude '**/MemberRef$Handle.java', '**/FabricUtil.java'
+                    }
+                }
             }
         }
     }
