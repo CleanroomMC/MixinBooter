@@ -8,6 +8,7 @@ import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
 import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
 import net.minecraftforge.fml.common.versioning.VersionRange;
+import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -137,10 +138,15 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         @Override
         public Set<ArtifactVersion> getRequirements() {
             try {
-                return Collections.singleton(new SpongeForgeArtifactVersion());
-            } catch (InvalidVersionSpecificationException e) {
-                throw new RuntimeException(e);
-            }
+                if ("1.12.2".equals(FMLInjectionData.data()[4])) {
+                    try {
+                        return Collections.singleton(new SpongeForgeArtifactVersion());
+                    } catch (InvalidVersionSpecificationException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } catch (Throwable ignored) { }
+            return Collections.emptySet();
         }
 
         // Thank you SpongeForge ^_^
