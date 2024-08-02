@@ -1,6 +1,5 @@
 package zone.rong.mixinbooter;
 
-import net.minecraftforge.fml.common.Loader;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -20,9 +19,10 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        String version = Loader.instance().getMCVersionString();
+        String version = (String) net.minecraftforge.fml.relauncher.FMLInjectionData.data()[4];
         MixinBooterPlugin.LOGGER.info("Detected MC Version : " + version);
         if (mixinClassName.contains("CrashReport")) {
+            // 1.8 & 1.8.8
             if (version.endsWith(".8")) {
                 return false;
             }
