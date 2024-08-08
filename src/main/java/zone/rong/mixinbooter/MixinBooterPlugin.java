@@ -3,12 +3,12 @@ package zone.rong.mixinbooter;
 import com.google.common.eventbus.EventBus;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
 import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
 import net.minecraftforge.fml.common.versioning.VersionRange;
+import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +27,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
     static String getMinecraftVersion() {
-        return ForgeVersion.mcVersion;
+        return (String) FMLInjectionData.data()[4];
     }
 
     public MixinBooterPlugin() {
