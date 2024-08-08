@@ -259,7 +259,7 @@ publishing {
     repositories {
         maven {
             name = 'CleanroomMaven'
-            url = CleanroomMaven
+            url = 'https://repo.cleanroommc.com/releases'
             credentials(PasswordCredentials)
             authentication {
                 basic(BasicAuthentication)
