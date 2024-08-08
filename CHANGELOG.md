@@ -1,5 +1,14 @@
 # Changelog
 
+## [9.2] - 2024-08-08
+
+### Changed
+- Reinstated `@MixinLoader` annotation, primarily for 1.8.x usages as Forge does not support gathering of interfaces
+
+### Fixed
+- Mixin source files not embed within the source jar
+- 1.8.x related crashes fixed (thanks to @HowardZHY!)
+
 ## [9.1] - 2024-02-03
 
 ### Changed

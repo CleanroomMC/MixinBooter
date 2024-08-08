@@ -24,16 +24,16 @@ dependencies {
     annotationProcessor 'com.google.code.gson:gson:2.8.9'
 
     // ForgeGradle:
-    implementation ('zone.rong:mixinbooter:9.1') {
+    implementation ('zone.rong:mixinbooter:9.2') {
         transitive = false
     }
-    annotationProcessor ('zone.rong:mixinbooter:9.1') {
+    annotationProcessor ('zone.rong:mixinbooter:9.2') {
         transitive = false
     }
     
     // RetroFuturaGradle:
-    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:9.1')
-    // modUtils.enableMixins('zone.rong:mixinbooter:9.1', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
+    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:9.2')
+    // modUtils.enableMixins('zone.rong:mixinbooter:9.2', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
     api (mixinBooter) {
         transitive = false
     }
@@ -53,8 +53,10 @@ dependencies {
 
 - As of 8.4, MixinBooter actively attempts to be compatible with [SpongeForge](https://github.com/SpongePowered/SpongeForge)
 
+- As of 9.2, MixinBooter reinstates the older MixinLoader annotation for 1.8.x usages.
+
 ### Tidbits:
 
 - Consult `IEarlyMixinLoader` for mixins that affects vanilla, forge, or any classes that is passed to the classloader extremely early (e.g. Guava).
 - Consult `ILateMixinLoader` for mixins that affects mods.
-- `@MixinLoader` annotation is, as of 4.2, deprecated. The functionality is akin to `ILateMixinLoader`.
+- `@MixinLoader` annotation's ~~, as of 4.2, deprecated. The~~ functionality is akin to `ILateMixinLoader`. Both can be used at the same time, especially for 1.8.x versions where it is needed.
