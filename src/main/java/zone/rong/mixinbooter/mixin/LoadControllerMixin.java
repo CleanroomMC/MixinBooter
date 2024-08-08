@@ -49,7 +49,7 @@ public class LoadControllerMixin {
                     log = true;
                 }
                 Class<?> clazz = Class.forName(asmData.getClassName());
-                MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
+                MixinBooterPlugin.LOGGER.info("Instantiating " + clazz + " for its mixins.");
                 clazz.newInstance();
             }
             log = false;
@@ -61,11 +61,11 @@ public class LoadControllerMixin {
                     log = true;
                 }
                 Class<?> clazz = Class.forName(asmData.getClassName().replace('/', '.'));
-                MixinBooterPlugin.LOGGER.info("Instantiating {} for its mixins.", clazz);
+                MixinBooterPlugin.LOGGER.info("Instantiating " + clazz + " for its mixins.");
                 ILateMixinLoader loader = (ILateMixinLoader) clazz.newInstance();
                 for (String mixinConfig : loader.getMixinConfigs()) {
                     if (loader.shouldMixinConfigQueue(mixinConfig)) {
-                        MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                        MixinBooterPlugin.LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
                         Mixins.addConfiguration(mixinConfig);
                         loader.onMixinConfigQueued(mixinConfig);
                     }
@@ -79,7 +79,7 @@ public class LoadControllerMixin {
                     MixinBooterPlugin.LOGGER.info("Appending non-conventional mixin configurations...");
                     log = true;
                 }
-                MixinBooterPlugin.LOGGER.info("Adding {} mixin configuration.", mixinConfig);
+                MixinBooterPlugin.LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
                 Mixins.addConfiguration(mixinConfig);
             }
 
