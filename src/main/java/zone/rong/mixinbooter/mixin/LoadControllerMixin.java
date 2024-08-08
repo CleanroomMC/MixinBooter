@@ -19,6 +19,8 @@ import zone.rong.mixinbooter.fix.MixinFixer;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Mixin that allows us to load "late" mixins for mods.
@@ -40,47 +42,50 @@ public class LoadControllerMixin {
                 modClassLoader.addFile(container.getSource());
             }
 
-            boolean log = false;
+            // Gather ILateMixinLoaders
+            Set<ASMDataTable.ASMData> interfaceData = asmDataTable.getAll(ILateMixinLoader.class.getName().replace('.', '/'));
+            Set<ILateMixinLoader> lateLoaders = new HashSet<>();
 
             // Instantiate all @MixinLoader annotated classes
-            for (ASMDataTable.ASMData asmData : asmDataTable.getAll(MixinLoader.class.getName())) {
-                if (!log) {
-                    MixinBooterPlugin.LOGGER.info("Instantiating all MixinLoader annotated classes...");
-                    log = true;
-                }
-                Class<?> clazz = Class.forName(asmData.getClassName());
-                MixinBooterPlugin.LOGGER.info("Instantiating " + clazz + " for its mixins.");
-                clazz.newInstance();
-            }
-            log = false;
+            Set<ASMDataTable.ASMData> annotatedData = asmDataTable.getAll(MixinLoader.class.getName());
 
-            // Instantiate all ILateMixinLoader implemented classes
-            for (ASMDataTable.ASMData asmData : asmDataTable.getAll(ILateMixinLoader.class.getName().replace('.', '/'))) {
-                if (!log) {
-                    MixinBooterPlugin.LOGGER.info("Instantiating all ILateMixinLoader implemented classes...");
-                    log = true;
-                }
-                Class<?> clazz = Class.forName(asmData.getClassName().replace('/', '.'));
-                MixinBooterPlugin.LOGGER.info("Instantiating " + clazz + " for its mixins.");
-                ILateMixinLoader loader = (ILateMixinLoader) clazz.newInstance();
-                for (String mixinConfig : loader.getMixinConfigs()) {
-                    if (loader.shouldMixinConfigQueue(mixinConfig)) {
-                        MixinBooterPlugin.LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
-                        Mixins.addConfiguration(mixinConfig);
-                        loader.onMixinConfigQueued(mixinConfig);
+            if (!annotatedData.isEmpty()) {
+                for (ASMDataTable.ASMData annotated : annotatedData) {
+                    Class<?> clazz = Class.forName(annotated.getClassName());
+                    MixinBooterPlugin.LOGGER.info("Instantiating @MixinLoader annotated class: " + clazz);
+                    Object instance = clazz.newInstance();
+                    if (instance instanceof ILateMixinLoader) {
+                        lateLoaders.add((ILateMixinLoader) instance);
                     }
                 }
             }
-            log = false;
 
-            // Append all non-conventional mixin configurations gathered via MixinFixer
-            for (String mixinConfig : MixinFixer.retrieveLateMixinConfigs()) {
-                if (!log) {
-                    MixinBooterPlugin.LOGGER.info("Appending non-conventional mixin configurations...");
-                    log = true;
+            // Instantiate all ILateMixinLoader implemented classes
+            if (!interfaceData.isEmpty()) {
+                for (ASMDataTable.ASMData itf : interfaceData) {
+                    Class<?> clazz = Class.forName(itf.getClassName().replace('/', '.'));
+                    MixinBooterPlugin.LOGGER.info("Instantiating ILateMixinLoader class: " + clazz);
+                    lateLoaders.add((ILateMixinLoader) clazz.newInstance());
                 }
-                MixinBooterPlugin.LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
-                Mixins.addConfiguration(mixinConfig);
+                for (ILateMixinLoader lateLoader : lateLoaders) {
+                    for (String mixinConfig : lateLoader.getMixinConfigs()) {
+                        if (lateLoader.shouldMixinConfigQueue(mixinConfig)) {
+                            MixinBooterPlugin.LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
+                            Mixins.addConfiguration(mixinConfig);
+                            lateLoader.onMixinConfigQueued(mixinConfig);
+                        }
+                    }
+                }
+            }
+
+            // Append all unconventional mixin configurations gathered via MixinFixer
+            Set<String> unconventionalConfigs = MixinFixer.retrieveLateMixinConfigs();
+            if (!unconventionalConfigs.isEmpty()) {
+                MixinBooterPlugin.LOGGER.info("Appending unconventional mixin configurations...");
+                for (String unconventionalConfig : unconventionalConfigs) {
+                    MixinBooterPlugin.LOGGER.info("Adding " + unconventionalConfig + " mixin configuration.");
+                    Mixins.addConfiguration(unconventionalConfig);
+                }
             }
 
             // Rebuild delegated transformers

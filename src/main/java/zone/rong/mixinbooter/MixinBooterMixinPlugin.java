@@ -10,7 +10,7 @@ import java.util.Set;
 public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
 
     @Override
-    public void onLoad(String mixinPackage) {}
+    public void onLoad(String mixinPackage) { }
 
     @Override
     public String getRefMapperConfig() {
@@ -19,19 +19,16 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        String version = (String) net.minecraftforge.fml.relauncher.FMLInjectionData.data()[4];
-        MixinBooterPlugin.LOGGER.info("Detected MC Version : " + version);
+        String version = MixinBooterPlugin.getMinecraftVersion();
         if (mixinClassName.contains("CrashReport")) {
             // 1.8 & 1.8.8
-            if (version.endsWith(".8")) {
-                return false;
-            }
+            return !version.endsWith(".8");
         }
         return true;
     }
 
     @Override
-    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {}
+    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) { }
 
     @Override
     public List<String> getMixins() {
@@ -39,8 +36,8 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
     }
 
     @Override
-    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
+    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) { }
 
     @Override
-    public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
+    public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) { }
 }
