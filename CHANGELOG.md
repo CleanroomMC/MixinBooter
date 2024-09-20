@@ -1,5 +1,19 @@
 # Changelog
 
+## [9.4] - 2024-09-20
+
+### Changed
+- Updated UniMix
+- Enable `comformVisibility` to `true` by default - thanks to jbredwards
+
+### Fixed
+- Compatibility with older ASM libraries - thanks to HowardZHY
+
+## [9.3] - 2024-08-18
+
+### Changed
+- Updated MixinExtras to 0.3.6
+
 ## [9.2] - 2024-08-08
 
 ### Changed
