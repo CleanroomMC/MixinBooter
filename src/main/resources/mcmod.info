@@ -3,7 +3,7 @@
 	"name": "${mod_name}",
 	"version": "${mod_version}",
 	"mcversion": "1.12.2",
-	"description": "A mod that provides the SpongeMixin library, a standard API for mods to load mixins targeting Minecraft and other mods, and associated useful utilities on 1.8 - 1.12.2.",
+	"description": "A mod that provides the Sponge Mixin library, a standard API for mods to load mixins targeting Minecraft and other mods, and associated useful utilities on 1.8 - 1.12.2.",
 	"authorList": ["Rongmario"],
 	"credits": "Thanks to LegacyModdingMC + Fabric for providing the initial mixin fork.",
 	"url": "https://github.com/CleanroomMC/MixinBooter",
