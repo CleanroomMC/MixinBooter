@@ -74,11 +74,11 @@ repositories {
 }
 
 dependencies {
-    String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:8e73ebb0b3')
+    String mixinDep = modUtils.enableMixins('com.github.CleanroomMC:UniMix:0a69e59b54')
     mixin (mixinDep) {
         transitive = false
     }
-    embed 'io.github.llamalad7:mixinextras-common:0.3.6'
+    embed 'io.github.llamalad7:mixinextras-common:0.5.0-beta.4'
     annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
     annotationProcessor 'com.google.guava:guava:24.1.1-jre'
     annotationProcessor 'com.google.code.gson:gson:2.8.6'
@@ -144,16 +144,6 @@ tasks.register('properJar', Jar) { jar ->
         include 'META-INF/services/*'
     }
 
-    // Exclude newer Java/Minecraft shenanigans
-    exclude '**/module-info.class'
-    exclude 'org/spongepowered/asm/service/modlauncher/*'
-    exclude 'org/spongepowered/asm/launch/MixinTransformationServiceLegacy*'
-    exclude 'org/spongepowered/asm/launch/MixinLaunchPlugin*'
-    exclude 'org/spongepowered/asm/launch/MixinTransformationService*'
-    exclude 'org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx*'
-    exclude 'META-INF/services/cpw.mods.modlauncher.api.ITransformationService'
-    exclude 'META-INF/services/cpw.mods.modlauncher.serviceapi.ILaunchPluginService'
-
     manifest {
         def attribute_map = [:]
         attribute_map['TweakClass'] = 'org.spongepowered.asm.launch.MixinTweaker'
@@ -175,9 +165,7 @@ tasks.register('properSourcesJar', Jar) { jar ->
     from sourceSets.main.allSource
 
     // Gather all of relocated source files
-    from(sourceSets.relocate.allSource) {
-        exclude '**/MemberRef.java'
-    }
+    from sourceSets.relocate.allSource
 
     // Gather sources of embed dependencies
     def componentIds = configurations.embed.incoming.resolutionResult.allDependencies.collect { it.selected.id }
@@ -192,23 +180,11 @@ tasks.register('properSourcesJar', Jar) { jar ->
                 fileTree(ar.file).each { sourceFiles ->
                     from zipTree(sourceFiles).matching {
                         include '**/*.java'
-                        exclude '**/MemberRef$Handle.java', '**/FabricUtil.java'
                     }
                 }
             }
         }
     }
-
-    // Exclude newer Java/Minecraft shenanigans
-    exclude '**/module-info.java'
-    exclude 'org/spongepowered/asm/service/modlauncher/*'
-    exclude 'org/spongepowered/asm/launch/MixinTransformationServiceLegacy*'
-    exclude 'org/spongepowered/asm/launch/MixinLaunchPlugin*'
-    exclude 'org/spongepowered/asm/launch/MixinTransformationService*'
-    exclude 'org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx*'
-    exclude 'META-INF/services/cpw.mods.modlauncher.api.ITransformationService'
-    exclude 'META-INF/services/cpw.mods.modlauncher.serviceapi.ILaunchPluginService'
-
 }
 
 idea {
