@@ -3,7 +3,7 @@ package zone.rong.mixinbooter;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import org.apache.commons.lang3.SystemUtils;
 
-import java.util.Set;
+import java.util.Collection;
 
 /**
  * This class contains loading context for callers
@@ -23,9 +23,9 @@ public final class Context {
     }
 
     private final String mixinConfig;
-    private final Set<String> presentMods;
+    private final Collection<String> presentMods;
 
-    Context(String mixinConfig, Set<String> presentMods) {
+    public Context(String mixinConfig, Collection<String> presentMods) {
         this.mixinConfig = mixinConfig;
         this.presentMods = presentMods;
     }

@@ -9,6 +9,6 @@
   "mixins": [
     "CrashReportMixin",
     "LoadControllerMixin",
-    "ModAPIManagerMixin"
+    "ModAPIManagerAccessor"
   ]
 }

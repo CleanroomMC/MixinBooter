@@ -19,8 +19,10 @@ import zone.rong.mixinbooter.fix.MixinFixer;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mixin that allows us to load "late" mixins for mods.
@@ -75,16 +77,21 @@ public class LoadControllerMixin {
                         throw new RuntimeException("Unexpected error.", t);
                     }
                 }
+
+                // Gather loaded mods for context
+                Collection<String> presentMods = this.loader.getActiveModList().stream().map(ModContainer::getModId).collect(Collectors.toSet());
+
                 for (ILateMixinLoader lateLoader : lateLoaders) {
                     for (String mixinConfig : lateLoader.getMixinConfigs()) {
-                        if (lateLoader.shouldMixinConfigQueue(mixinConfig)) {
+                        Context context = new Context(mixinConfig, presentMods);
+                        if (lateLoader.shouldMixinConfigQueue(context)) {
                             IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(mixinConfig);
                             if (hijacker != null) {
                                 MixinBooterPlugin.LOGGER.info("Mixin configuration [{}] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
                             } else {
                                 MixinBooterPlugin.LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
                                 Mixins.addConfiguration(mixinConfig);
-                                lateLoader.onMixinConfigQueued(mixinConfig);
+                                lateLoader.onMixinConfigQueued(context);
                             }
                         }
                     }

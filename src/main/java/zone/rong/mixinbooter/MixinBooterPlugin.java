@@ -1,9 +1,13 @@
 package zone.rong.mixinbooter;
 
 import com.google.common.eventbus.EventBus;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
+import net.minecraftforge.fml.common.discovery.ASMDataTable;
+import net.minecraftforge.fml.common.discovery.ModCandidate;
 import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
 import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
@@ -15,10 +19,17 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
+import org.spongepowered.asm.mixin.ModUtil;
+import org.spongepowered.asm.mixin.transformer.Config;
 import zone.rong.mixinbooter.fix.MixinFixer;
+import zone.rong.mixinbooter.mixin.ModAPIManagerAccessor;
+import zone.rong.mixinbooter.util.MockedMetadataCollection;
 
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.util.*;
+import java.util.function.Supplier;
 
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
@@ -26,6 +37,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
+    private static final Map<String, String> presentMods = new HashMap<>();
     private static final Map<String, IMixinConfigHijacker> configHijackers = new HashMap<>();
 
     public static IMixinConfigHijacker getHijacker(String configName) {
@@ -62,6 +74,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         if (coremodList instanceof List) {
             Collection<IEarlyMixinLoader> earlyLoaders = this.gatherEarlyLoaders((List) coremodList);
             this.loadEarlyLoaders(earlyLoaders);
+            this.recordConfigOwners();
         } else {
             throw new RuntimeException("Blackboard property 'coremodList' must be of type List, early loaders were not able to be gathered");
         }
@@ -75,6 +88,66 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     private void addTransformationExclusions() {
         Launch.classLoader.addTransformerExclusion("scala.");
         Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
+    }
+
+    private void initialize() {
+        GlobalProperties.put(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS, new HashSet<>());
+
+        LOGGER.info("Initializing Mixins...");
+        MixinBootstrap.init();
+
+        Mixins.addConfiguration("mixin.mixinbooter.init.json");
+
+        LOGGER.info("Initializing MixinExtras...");
+        MixinExtrasBootstrap.init();
+
+        MixinFixer.patchAncientModMixinsLoadingMethod();
+
+        LOGGER.info("Gathering present mods...");
+        this.gatherPresentMods();
+    }
+
+    private void gatherPresentMods() {
+        try {
+            Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
+            while (resources.hasMoreElements()) {
+                URL url = resources.nextElement();
+                String fileName = getJarNameFromResource(url);
+                if (fileName != null) {
+                    String modId = parseMcmodInfo(url);
+                    if (modId != null) {
+                        presentMods.put(fileName, modId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to gather present mods", e);
+        }
+    }
+
+    private String getJarNameFromResource(URL url) {
+        if (url.getPath().contains("!/")) {
+            String filePath = url.getPath().split("!/")[0];
+            String[] parts = filePath.split("/");
+            if (parts.length != 0) {
+                return parts[parts.length - 1];
+            }
+        }
+        return null;
+    }
+
+    private String parseMcmodInfo(URL url) {
+        Gson gson = new Gson();
+        try {
+            JsonElement root = gson.fromJson(new InputStreamReader(url.openStream()), JsonElement.class);
+            if (root.isJsonArray()) {
+                return gson.fromJson(new InputStreamReader(url.openStream()), ModMetadata[].class)[0].modId;
+            } else {
+                return gson.fromJson(new InputStreamReader(url.openStream()), MockedMetadataCollection.class).modList[0].modId;
+            }
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to parse mcmod.info for " + url, t);
+        }
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
@@ -110,32 +183,54 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
             LOGGER.info("Loading early loader [{}] for its mixins.", queuedLoader.getClass().getName());
             for (String mixinConfig : queuedLoader.getMixinConfigs()) {
-                if (queuedLoader.shouldMixinConfigQueue(mixinConfig)) {
+                Context context = new Context(mixinConfig, presentMods.values());
+                if (queuedLoader.shouldMixinConfigQueue(context)) {
                     IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
                     if (hijacker != null) {
                         LOGGER.info("Mixin configuration [{}] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
                     } else {
                         LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
                         Mixins.addConfiguration(mixinConfig);
-                        queuedLoader.onMixinConfigQueued(mixinConfig);
+                        queuedLoader.onMixinConfigQueued(context);
                     }
                 }
             }
         }
     }
 
-    private void initialize() {
-        GlobalProperties.put(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS, new HashSet<>());
+    private void recordConfigOwners() {
+        for (Config config : Mixins.getConfigs()) {
+            if (!config.getConfig().hasDecoration(ModUtil.OWNER_DECORATOR)) {
+                config.getConfig().decorate(ModUtil.OWNER_DECORATOR, (Supplier) () -> this.retrieveConfigOwner(config));
+            }
+        }
+    }
 
-        LOGGER.info("Initializing Mixins...");
-        MixinBootstrap.init();
-
-        Mixins.addConfiguration("mixin.mixinbooter.init.json");
-
-        LOGGER.info("Initializing MixinExtras...");
-        MixinExtrasBootstrap.init();
-
-        MixinFixer.patchAncientModMixinsLoadingMethod();
+    private String retrieveConfigOwner(Config config) {
+        ASMDataTable table = ((ModAPIManagerAccessor) ModAPIManager.INSTANCE).mixinBooter$getDataTable();
+        if (table != null) {
+            String pkg = config.getConfig().getMixinPackage();
+            pkg = pkg.charAt(pkg.length() - 1) == '.' ? pkg.substring(0, pkg.length() - 1) : pkg;
+            ModCandidate candidate = table.getCandidatesFor(pkg).stream().findFirst().orElse(null);
+            if (candidate != null) {
+                ModContainer container = candidate.getContainedMods().get(0);
+                if (container != null) {
+                    return container.getModId();
+                }
+            }
+        } else {
+            URL url = Launch.classLoader.getResource(config.getName());
+            if (url != null) {
+                String jar = this.getJarNameFromResource(url);
+                if (jar != null) {
+                    String modId = presentMods.get(jar);
+                    if (modId != null) {
+                        return modId;
+                    }
+                }
+            }
+        }
+        return ModUtil.UNKNOWN_OWNER;
     }
 
     public static class Container extends DummyModContainer {
