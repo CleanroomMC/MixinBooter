@@ -52,9 +52,13 @@ public final class Context {
     }
 
     /**
-     * The list of mods are gathered from culling the classloader for any jars that has
-     * the mcmod.info file. The mod IDs are obtained from the mcmod.info file.
+     * <p>For early contexts, the list of mods are gathered from culling the classloader
+     * for any jars that has the mcmod.info file. The mod IDs are obtained from the mcmod.info file.
+     * This means mostly, if not only coremods are queryable here,
+     * make sure to test a normal mod's existence in your mixin plugin or in the mixin itself.</p>
      *
+     * <p>For late contexts, it comes from {@link net.minecraftforge.fml.common.Loader#getActiveModList}
+     * akin to {@link net.minecraftforge.fml.common.Loader#isModLoaded(String)}</p>
      * @param modId to check against the list of present mods in the context
      * @return whether the mod is present
      */

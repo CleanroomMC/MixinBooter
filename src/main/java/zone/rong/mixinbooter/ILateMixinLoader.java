@@ -44,7 +44,7 @@ public interface ILateMixinLoader {
     /**
      * Runs when a mixin config is successfully queued and sent to Mixin library.
      * @since 10.0
-     * @param context context current context of the loading process.
+     * @param context current context of the loading process.
      */
     default void onMixinConfigQueued(Context context) {
         this.onMixinConfigQueued(context.mixinConfig());
