@@ -1,19 +1,17 @@
 package zone.rong.mixinbooter.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.crash.CrashReport;
-import org.spongepowered.asm.launch.platform.GlobalMixinContextQuery;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import zone.rong.mixinbooter.MixinBooterPlugin;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -24,8 +22,8 @@ import java.util.*;
 @Mixin(CrashReport.class)
 public class CrashReportMixin {
 
-    @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
-    private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, StringWriter stringwriter, PrintWriter printwriter, Throwable throwable) {
+    @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), cancellable = true)
+    private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, @Local Throwable throwable) {
         try {
             Field classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
             classInfo$mixins.setAccessible(true);
@@ -75,7 +73,7 @@ public class CrashReportMixin {
     }
 
     @Unique
-    private boolean mixinbooter$findAndAddMixinMetadata(StringBuilder mixinMetadataBuilder, String className, ClassInfo classInfo) throws IllegalAccessException {
+    private boolean mixinbooter$findAndAddMixinMetadata(StringBuilder mixinMetadataBuilder, String className, ClassInfo classInfo) {
         Set<IMixinInfo> mixinInfos = classInfo.getApplicableMixins();
         if (!mixinInfos.isEmpty()) {
             mixinMetadataBuilder.append("\n\t");
@@ -87,7 +85,7 @@ public class CrashReportMixin {
                 mixinMetadataBuilder.append(" (");
                 mixinMetadataBuilder.append(mixinInfo.getConfig());
                 mixinMetadataBuilder.append(") [");
-                mixinMetadataBuilder.append(GlobalMixinContextQuery.location(mixinInfo));
+                mixinMetadataBuilder.append(ModUtil.owner(mixinInfo.getConfig()));
                 mixinMetadataBuilder.append("]");
             }
             return true;
