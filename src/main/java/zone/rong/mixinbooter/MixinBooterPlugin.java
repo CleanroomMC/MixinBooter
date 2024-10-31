@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.transformer.Config;
 import zone.rong.mixinbooter.fix.MixinFixer;
-import zone.rong.mixinbooter.mixin.ModAPIManagerAccessor;
 import zone.rong.mixinbooter.util.MockedMetadataCollection;
 
 import java.io.InputStreamReader;
@@ -39,6 +38,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private static final Map<String, String> presentMods = new HashMap<>();
     private static final Map<String, IMixinConfigHijacker> configHijackers = new HashMap<>();
+
+    private static Field modApiManager$dataTable;
 
     public static IMixinConfigHijacker getHijacker(String configName) {
         return configHijackers.get(configName);
@@ -123,6 +124,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         } catch (Exception e) {
             throw new RuntimeException("Failed to gather present mods", e);
         }
+        LOGGER.info("Finished gathering {} mods...", presentMods.size());
     }
 
     private String getJarNameFromResource(URL url) {
@@ -207,26 +209,35 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private String retrieveConfigOwner(Config config) {
-        ASMDataTable table = ((ModAPIManagerAccessor) ModAPIManager.INSTANCE).mixinBooter$getDataTable();
-        if (table != null) {
-            String pkg = config.getConfig().getMixinPackage();
-            pkg = pkg.charAt(pkg.length() - 1) == '.' ? pkg.substring(0, pkg.length() - 1) : pkg;
-            ModCandidate candidate = table.getCandidatesFor(pkg).stream().findFirst().orElse(null);
-            if (candidate != null) {
-                ModContainer container = candidate.getContainedMods().get(0);
-                if (container != null) {
-                    return container.getModId();
+        if (modApiManager$dataTable == null) {
+            try {
+                modApiManager$dataTable = ModAPIManager.class.getDeclaredField("dataTable");
+                modApiManager$dataTable.setAccessible(true);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("Unable to reflectively retrieve ModAPIManager#dataTable", e);
+            }
+        }
+        try {
+            ASMDataTable table = (ASMDataTable) modApiManager$dataTable.get(ModAPIManager.INSTANCE);
+            if (table != null) {
+                String pkg = config.getConfig().getMixinPackage();
+                pkg = pkg.charAt(pkg.length() - 1) == '.' ? pkg.substring(0, pkg.length() - 1) : pkg;
+                ModCandidate candidate = table.getCandidatesFor(pkg).stream().findFirst().orElse(null);
+                if (candidate != null) {
+                    ModContainer container = candidate.getContainedMods().get(0);
+                    if (container != null) {
+                        return container.getModId();
+                    }
                 }
             }
-        } else {
-            URL url = Launch.classLoader.getResource(config.getName());
-            if (url != null) {
-                String jar = this.getJarNameFromResource(url);
-                if (jar != null) {
-                    String modId = presentMods.get(jar);
-                    if (modId != null) {
-                        return modId;
-                    }
+        } catch (IllegalAccessException ignore) { }
+        URL url = Launch.classLoader.getResource(config.getName());
+        if (url != null) {
+            String jar = this.getJarNameFromResource(url);
+            if (jar != null) {
+                String modId = presentMods.get(jar);
+                if (modId != null) {
+                    return modId;
                 }
             }
         }
