@@ -2,6 +2,7 @@ package zone.rong.mixinbooter;
 
 import com.google.common.eventbus.EventBus;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
@@ -109,13 +110,16 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void gatherPresentMods() {
+        Gson gson = new GsonBuilder().registerTypeAdapter(ArtifactVersion.class, new MetadataCollection.ArtifactVersionAdapter())
+                .setLenient()
+                .create();
         try {
             Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
                 String fileName = getJarNameFromResource(url);
                 if (fileName != null) {
-                    String modId = parseMcmodInfo(url);
+                    String modId = parseMcmodInfo(gson, url);
                     if (modId != null) {
                         presentMods.put(fileName, modId);
                     }
@@ -138,8 +142,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         return null;
     }
 
-    private String parseMcmodInfo(URL url) {
-        Gson gson = new Gson();
+    private String parseMcmodInfo(Gson gson, URL url) {
         try {
             JsonElement root = gson.fromJson(new InputStreamReader(url.openStream()), JsonElement.class);
             if (root.isJsonArray()) {
@@ -148,7 +151,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 return gson.fromJson(new InputStreamReader(url.openStream()), MockedMetadataCollection.class).modList[0].modId;
             }
         } catch (Throwable t) {
-            throw new RuntimeException("Failed to parse mcmod.info for " + url, t);
+            LOGGER.error("Failed to parse mcmod.info for {}", url, t);
+            return null;
         }
     }
 
