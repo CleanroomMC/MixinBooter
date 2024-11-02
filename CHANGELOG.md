@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.0] - 2024-11-02
+
+### Added
+- New API (Context) for early/late loaders
+
+### Changed
+- Updated UniMix, is now updated with Fabric Mixin 0.15.3, Mixin 0.8.7
+- Updated to MixinExtras 0.5.0-beta4
+- Better logging at launch
+
+### Fixed
+- Hijackers not applied to late mixins
+- Mod description typo
+
 ## [9.4] - 2024-09-20
 
 ### Changed

@@ -1,9 +1,9 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [UniMix 0.12.2 forked by CleanroomMC, derived from 0.8.5 branch by LegacyModdingMC](https://github.com/CleanroomMC/UniMix)
+- Current Mixin Version: [UniMix 0.15.3 forked by CleanroomMC, derived from 0.8.7 branch by LegacyModdingMC](https://github.com/CleanroomMC/UniMix)
 
-- Current MixinExtra Version: [0.3.6](https://github.com/LlamaLad7/MixinExtras)
+- Current MixinExtra Version: [0.5.0-beta4](https://github.com/LlamaLad7/MixinExtras)
 
 ### For Developers:
 
@@ -24,16 +24,16 @@ dependencies {
     annotationProcessor 'com.google.code.gson:gson:2.8.9'
 
     // ForgeGradle:
-    implementation ('zone.rong:mixinbooter:9.4') {
+    implementation ('zone.rong:mixinbooter:10.0') {
         transitive = false
     }
-    annotationProcessor ('zone.rong:mixinbooter:9.4') {
+    annotationProcessor ('zone.rong:mixinbooter:10.0') {
         transitive = false
     }
     
     // RetroFuturaGradle:
-    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:9.4')
-    // modUtils.enableMixins('zone.rong:mixinbooter:9.4', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
+    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:10.0')
+    // modUtils.enableMixins('zone.rong:mixinbooter:10.0', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
     api (mixinBooter) {
         transitive = false
     }
@@ -54,6 +54,8 @@ dependencies {
 - As of 8.4, MixinBooter actively attempts to be compatible with [SpongeForge](https://github.com/SpongePowered/SpongeForge)
 
 - As of 9.2, MixinBooter reinstates the older MixinLoader annotation for 1.8.x usages.
+
+- As of 10.0, MixinBooter follows Mixin 0.8.7
 
 ### Tidbits:
 
