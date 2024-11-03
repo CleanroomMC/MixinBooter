@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.transformer.Config;
 import zone.rong.mixinbooter.fix.MixinFixer;
+import zone.rong.mixinbooter.util.MockedArtifactVersionAdapter;
 import zone.rong.mixinbooter.util.MockedMetadataCollection;
 
 import java.io.InputStreamReader;
@@ -110,7 +111,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void gatherPresentMods() {
-        Gson gson = new GsonBuilder().registerTypeAdapter(ArtifactVersion.class, new MetadataCollection.ArtifactVersionAdapter())
+        Gson gson = new GsonBuilder().registerTypeAdapter(ArtifactVersion.class, new MockedArtifactVersionAdapter())
                 .setLenient()
                 .create();
         try {
