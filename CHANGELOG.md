@@ -1,5 +1,10 @@
 # Changelog
 
+## [10.1] - 2024-11-04
+
+### Fixed
+- Few certain vanilla classes loading early, breaking some deobfuscation into SRG
+
 ## [10.0] - 2024-11-02
 
 ### Added
