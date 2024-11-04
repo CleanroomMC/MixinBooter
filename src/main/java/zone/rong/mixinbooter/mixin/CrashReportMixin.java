@@ -23,7 +23,7 @@ import java.util.*;
 public class CrashReportMixin {
 
     @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), cancellable = true)
-    private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, @Local Throwable throwable) {
+    private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, @Local(ordinal = 0) Throwable throwable) {
         try {
             Field classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
             classInfo$mixins.setAccessible(true);
