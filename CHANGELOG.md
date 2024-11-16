@@ -1,5 +1,10 @@
 # Changelog
 
+## [10.2] - 2024-11-16
+
+### Fixed
+- Specified ordinality on a local capture for when the mixin is applied in brittle contexts
+
 ## [10.1] - 2024-11-04
 
 ### Fixed
