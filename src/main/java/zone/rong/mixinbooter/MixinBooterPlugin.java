@@ -90,7 +90,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void addTransformationExclusions() {
         Launch.classLoader.addTransformerExclusion("scala.");
-        Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
+        Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.wrapper.");
     }
 
     private void initialize() {
@@ -129,7 +129,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         } catch (Exception e) {
             throw new RuntimeException("Failed to gather present mods", e);
         }
-        LOGGER.info("Finished gathering {} mods...", presentMods.size());
+        LOGGER.info("Finished gathering " + presentMods.size() + " mods...");
     }
 
     private String getJarNameFromResource(URL url) {
@@ -152,7 +152,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 return gson.fromJson(new InputStreamReader(url.openStream()), MockedMetadataCollection.class).modList[0].modId;
             }
         } catch (Throwable t) {
-            LOGGER.error("Failed to parse mcmod.info for {}", url, t);
+            LOGGER.error("Failed to parse mcmod.info for " + url + " :" + t);
             return null;
         }
     }
@@ -180,7 +180,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                     Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
                 }
             } catch (Throwable t) {
-                LOGGER.error("Unexpected error", t);
+                LOGGER.error("Unexpected error: " + t);
             }
         }
         return queuedLoaders;
@@ -188,15 +188,15 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void loadEarlyLoaders(Collection<IEarlyMixinLoader> queuedLoaders) {
         for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
-            LOGGER.info("Loading early loader [{}] for its mixins.", queuedLoader.getClass().getName());
+            LOGGER.info("Loading early loader " + queuedLoader.getClass().getName() + " for its mixins.");
             for (String mixinConfig : queuedLoader.getMixinConfigs()) {
                 Context context = new Context(mixinConfig, presentMods.values());
                 if (queuedLoader.shouldMixinConfigQueue(context)) {
                     IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
                     if (hijacker != null) {
-                        LOGGER.info("Mixin configuration [{}] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
+                        LOGGER.info("Mixin configuration " + mixinConfig + " intercepted by " + hijacker.getClass().getName());
                     } else {
-                        LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
+                        LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
                         Mixins.addConfiguration(mixinConfig);
                         queuedLoader.onMixinConfigQueued(context);
                     }

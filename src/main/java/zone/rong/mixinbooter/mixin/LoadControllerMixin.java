@@ -55,7 +55,7 @@ public class LoadControllerMixin {
                 for (ASMDataTable.ASMData annotated : annotatedData) {
                     try {
                         Class<?> clazz = Class.forName(annotated.getClassName());
-                        MixinBooterPlugin.LOGGER.info("Loading annotated late loader [{}] for its mixins.", clazz.getName());
+                        MixinBooterPlugin.LOGGER.info("Loading annotated late loader " + clazz.getName() + " for its mixins.");
                         Object instance = clazz.newInstance();
                         if (instance instanceof ILateMixinLoader) {
                             lateLoaders.add((ILateMixinLoader) instance);
@@ -71,7 +71,7 @@ public class LoadControllerMixin {
                 for (ASMDataTable.ASMData itf : interfaceData) {
                     try {
                         Class<?> clazz = Class.forName(itf.getClassName().replace('/', '.'));
-                        MixinBooterPlugin.LOGGER.info("Loading late loader [{}] for its mixins.", clazz.getName());
+                        MixinBooterPlugin.LOGGER.info("Loading late loader " + clazz.getName() + " for its mixins.");
                         lateLoaders.add((ILateMixinLoader) clazz.newInstance());
                     } catch (Throwable t) {
                         throw new RuntimeException("Unexpected error.", t);
@@ -87,9 +87,9 @@ public class LoadControllerMixin {
                         if (lateLoader.shouldMixinConfigQueue(context)) {
                             IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(mixinConfig);
                             if (hijacker != null) {
-                                MixinBooterPlugin.LOGGER.info("Mixin configuration [{}] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
+                                MixinBooterPlugin.LOGGER.info("Mixin configuration " + mixinConfig + " intercepted by " + hijacker.getClass().getName());
                             } else {
-                                MixinBooterPlugin.LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
+                                MixinBooterPlugin.LOGGER.info("Adding " + mixinConfig + " mixin configuration.");
                                 Mixins.addConfiguration(mixinConfig);
                                 lateLoader.onMixinConfigQueued(context);
                             }
@@ -105,9 +105,9 @@ public class LoadControllerMixin {
                 for (String unconventionalConfig : unconventionalConfigs) {
                     IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(unconventionalConfig);
                     if (hijacker != null) {
-                        MixinBooterPlugin.LOGGER.info("Mixin configuration [{}] intercepted by [{}].", unconventionalConfig, hijacker.getClass().getName());
+                        MixinBooterPlugin.LOGGER.info("Mixin configuration " + unconventionalConfig + " intercepted by " + hijacker.getClass().getName());
                     } else {
-                        MixinBooterPlugin.LOGGER.info("Adding [{}] mixin configuration.", unconventionalConfig);
+                        MixinBooterPlugin.LOGGER.info("Adding " + unconventionalConfig + " mixin configuration.", unconventionalConfig);
                         Mixins.addConfiguration(unconventionalConfig);
                     }
                 }
