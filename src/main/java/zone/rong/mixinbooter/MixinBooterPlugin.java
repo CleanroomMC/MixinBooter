@@ -4,6 +4,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
@@ -112,7 +113,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void gatherPresentMods() {
         Gson gson = new GsonBuilder().registerTypeAdapter(ArtifactVersion.class, new MockedArtifactVersionAdapter())
-                .setLenient()
                 .create();
         try {
             Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
@@ -145,7 +145,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private String parseMcmodInfo(Gson gson, URL url) {
         try {
-            JsonElement root = gson.fromJson(new InputStreamReader(url.openStream()), JsonElement.class);
+            JsonReader reader = new JsonReader(new InputStreamReader(url.openStream()));
+            reader.setLenient(true);
+            JsonElement root = gson.fromJson(reader, JsonElement.class);
             if (root.isJsonArray()) {
                 return gson.fromJson(new InputStreamReader(url.openStream()), ModMetadata[].class)[0].modId;
             } else {
