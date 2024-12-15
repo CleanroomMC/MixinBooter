@@ -21,8 +21,8 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         String version = MixinBooterPlugin.getMinecraftVersion();
         if (mixinClassName.contains("CrashReport")) {
-            // 1.8 & 1.8.8
-            return !version.endsWith(".8");
+            // 1.8.x
+            return !version.startsWith("1.8.");
         }
         return true;
     }

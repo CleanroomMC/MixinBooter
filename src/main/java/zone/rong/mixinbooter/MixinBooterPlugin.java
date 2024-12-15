@@ -4,6 +4,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
@@ -112,7 +113,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void gatherPresentMods() {
         Gson gson = new GsonBuilder().registerTypeAdapter(ArtifactVersion.class, new MockedArtifactVersionAdapter())
-                .setLenient()
                 .create();
         try {
             Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
@@ -129,7 +129,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         } catch (Exception e) {
             throw new RuntimeException("Failed to gather present mods", e);
         }
-        LOGGER.info("Finished gathering {} mods...", presentMods.size());
+        logInfo("Finished gathering %d mods...", presentMods.size());
     }
 
     private String getJarNameFromResource(URL url) {
@@ -145,14 +145,16 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private String parseMcmodInfo(Gson gson, URL url) {
         try {
-            JsonElement root = gson.fromJson(new InputStreamReader(url.openStream()), JsonElement.class);
+            JsonReader reader = new JsonReader(new InputStreamReader(url.openStream()));
+            reader.setLenient(true);
+            JsonElement root = gson.fromJson(reader, JsonElement.class);
             if (root.isJsonArray()) {
                 return gson.fromJson(new InputStreamReader(url.openStream()), ModMetadata[].class)[0].modId;
             } else {
                 return gson.fromJson(new InputStreamReader(url.openStream()), MockedMetadataCollection.class).modList[0].modId;
             }
         } catch (Throwable t) {
-            LOGGER.error("Failed to parse mcmod.info for {}", url, t);
+            logError("Failed to parse mcmod.info for %s", t, url);
             return null;
         }
     }
@@ -188,15 +190,15 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void loadEarlyLoaders(Collection<IEarlyMixinLoader> queuedLoaders) {
         for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
-            LOGGER.info("Loading early loader [{}] for its mixins.", queuedLoader.getClass().getName());
+            logInfo("Loading early loader %s for its mixins.", queuedLoader.getClass().getName());
             for (String mixinConfig : queuedLoader.getMixinConfigs()) {
                 Context context = new Context(mixinConfig, presentMods.values());
                 if (queuedLoader.shouldMixinConfigQueue(context)) {
                     IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
                     if (hijacker != null) {
-                        LOGGER.info("Mixin configuration [{}] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
+                        logInfo("Mixin configuration [%s] intercepted by [%s].", mixinConfig, hijacker.getClass().getName());
                     } else {
-                        LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
+                        logInfo("Adding [%s] mixin configuration.", mixinConfig);
                         Mixins.addConfiguration(mixinConfig);
                         queuedLoader.onMixinConfigQueued(context);
                     }
@@ -312,4 +314,25 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     }
 
+    /*
+     * Minecraft 1.8.x uses a beta version of Log4j2 with a slightly different
+     * API for parameterized logging than ended up in the releases used by 1.12+.
+     *
+     * The following methods act as a workaround for that issue while keeping the
+     * performance conscious "log only if enabled" approach employed by Log4j2 internally.
+     */
+
+    @SuppressWarnings("StringConcatenationArgumentToLogCall")
+    public static void logInfo(String message, Object... params) {
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(String.format(message, params));
+        }
+    }
+
+    @SuppressWarnings("StringConcatenationArgumentToLogCall")
+    public static void logError(String message, Throwable t, Object... params) {
+        if (LOGGER.isErrorEnabled()) {
+            LOGGER.error(String.format(message, params), t);
+        }
+    }
 }
