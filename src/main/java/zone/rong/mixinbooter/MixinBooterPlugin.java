@@ -191,18 +191,23 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     private void loadEarlyLoaders(Collection<IEarlyMixinLoader> queuedLoaders) {
         for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
             logInfo("Loading early loader %s for its mixins.", queuedLoader.getClass().getName());
-            for (String mixinConfig : queuedLoader.getMixinConfigs()) {
-                Context context = new Context(mixinConfig, presentMods.values());
-                if (queuedLoader.shouldMixinConfigQueue(context)) {
-                    IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
-                    if (hijacker != null) {
-                        logInfo("Mixin configuration [%s] intercepted by [%s].", mixinConfig, hijacker.getClass().getName());
-                    } else {
-                        logInfo("Adding [%s] mixin configuration.", mixinConfig);
-                        Mixins.addConfiguration(mixinConfig);
-                        queuedLoader.onMixinConfigQueued(context);
+            try {
+                for (String mixinConfig : queuedLoader.getMixinConfigs()) {
+                    Context context = new Context(mixinConfig, presentMods.values());
+                    if (queuedLoader.shouldMixinConfigQueue(context)) {
+                        IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
+                        if (hijacker != null) {
+                            logInfo("Mixin configuration [%s] intercepted by [%s].", mixinConfig, hijacker.getClass()
+                                    .getName());
+                        } else {
+                            logInfo("Adding [%s] mixin configuration.", mixinConfig);
+                            Mixins.addConfiguration(mixinConfig);
+                            queuedLoader.onMixinConfigQueued(context);
+                        }
                     }
                 }
+            } catch (Throwable t) {
+                logError("Failed to execute early loader [%s].", t, queuedLoader.getClass().getName());
             }
         }
     }
