@@ -197,8 +197,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                     if (queuedLoader.shouldMixinConfigQueue(context)) {
                         IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
                         if (hijacker != null) {
-                            logInfo("Mixin configuration [%s] intercepted by [%s].", mixinConfig, hijacker.getClass()
-                                    .getName());
+                            logInfo("Mixin configuration [%s] intercepted by [%s].", mixinConfig, hijacker.getClass().getName());
                         } else {
                             logInfo("Adding [%s] mixin configuration.", mixinConfig);
                             Mixins.addConfiguration(mixinConfig);

@@ -88,8 +88,7 @@ public class LoadControllerMixin {
                             if (lateLoader.shouldMixinConfigQueue(context)) {
                                 IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(mixinConfig);
                                 if (hijacker != null) {
-                                    MixinBooterPlugin.logInfo("Mixin configuration [%s] intercepted by [{}].", mixinConfig, hijacker.getClass()
-                                            .getName());
+                                    MixinBooterPlugin.logInfo("Mixin configuration [%s] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
                                 } else {
                                     MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
                                     Mixins.addConfiguration(mixinConfig);
