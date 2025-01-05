@@ -82,18 +82,22 @@ public class LoadControllerMixin {
                 Collection<String> presentMods = this.loader.getActiveModList().stream().map(ModContainer::getModId).collect(Collectors.toSet());
 
                 for (ILateMixinLoader lateLoader : lateLoaders) {
-                    for (String mixinConfig : lateLoader.getMixinConfigs()) {
-                        Context context = new Context(mixinConfig, presentMods);
-                        if (lateLoader.shouldMixinConfigQueue(context)) {
-                            IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(mixinConfig);
-                            if (hijacker != null) {
-                                MixinBooterPlugin.logInfo("Mixin configuration [%s] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
-                            } else {
-                                MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
-                                Mixins.addConfiguration(mixinConfig);
-                                lateLoader.onMixinConfigQueued(context);
+                    try {
+                        for (String mixinConfig : lateLoader.getMixinConfigs()) {
+                            Context context = new Context(mixinConfig, presentMods);
+                            if (lateLoader.shouldMixinConfigQueue(context)) {
+                                IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(mixinConfig);
+                                if (hijacker != null) {
+                                    MixinBooterPlugin.logInfo("Mixin configuration [%s] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
+                                } else {
+                                    MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
+                                    Mixins.addConfiguration(mixinConfig);
+                                    lateLoader.onMixinConfigQueued(context);
+                                }
                             }
                         }
+                    } catch (Throwable t) {
+                        MixinBooterPlugin.logError("Failed to execute late loader [%s].", t, lateLoader.getClass().getName());
                     }
                 }
             }
