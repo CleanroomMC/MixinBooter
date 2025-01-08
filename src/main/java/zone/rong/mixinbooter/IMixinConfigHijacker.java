@@ -11,6 +11,21 @@ import java.util.Set;
  */
 public interface IMixinConfigHijacker {
 
+    /**
+     * Return a set of mixin config names to not be loaded by the mixin environment.
+     *
+     * @since 9.0
+     */
     Set<String> getHijackedMixinConfigs();
+
+    /**
+     * Return a set of mixin config names to not be loaded by the mixin environment.
+     *
+     * @since 10.3
+     * @param context current context of the loading process.
+     */
+    default Set<String> getHijackedMixinConfigs(Context context) {
+        return getHijackedMixinConfigs();
+    }
 
 }
