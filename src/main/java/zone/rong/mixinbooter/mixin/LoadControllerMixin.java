@@ -86,14 +86,9 @@ public class LoadControllerMixin {
                         for (String mixinConfig : lateLoader.getMixinConfigs()) {
                             Context context = new Context(mixinConfig, presentMods);
                             if (lateLoader.shouldMixinConfigQueue(context)) {
-                                IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(mixinConfig);
-                                if (hijacker != null) {
-                                    MixinBooterPlugin.logInfo("Mixin configuration [%s] intercepted by [{}].", mixinConfig, hijacker.getClass().getName());
-                                } else {
-                                    MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
-                                    Mixins.addConfiguration(mixinConfig);
-                                    lateLoader.onMixinConfigQueued(context);
-                                }
+                                MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
+                                Mixins.addConfiguration(mixinConfig);
+                                lateLoader.onMixinConfigQueued(context);
                             }
                         }
                     } catch (Throwable t) {
@@ -107,13 +102,8 @@ public class LoadControllerMixin {
             if (!unconventionalConfigs.isEmpty()) {
                 MixinBooterPlugin.LOGGER.info("Appending unconventional mixin configurations...");
                 for (String unconventionalConfig : unconventionalConfigs) {
-                    IMixinConfigHijacker hijacker = MixinBooterPlugin.getHijacker(unconventionalConfig);
-                    if (hijacker != null) {
-                        MixinBooterPlugin.logInfo("Mixin configuration [%s] intercepted by [%s].", unconventionalConfig, hijacker.getClass().getName());
-                    } else {
-                        MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", unconventionalConfig);
-                        Mixins.addConfiguration(unconventionalConfig);
-                    }
+                    MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", unconventionalConfig);
+                    Mixins.addConfiguration(unconventionalConfig);
                 }
             }
 

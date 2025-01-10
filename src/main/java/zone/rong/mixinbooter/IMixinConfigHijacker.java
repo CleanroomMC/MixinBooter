@@ -22,7 +22,7 @@ public interface IMixinConfigHijacker {
      * Return a set of mixin config names to not be loaded by the mixin environment.
      *
      * @since 10.3
-     * @param context current context of the loading process.
+     * @param context current context of the loading process. Mixin config will be null as it is not applicable.
      */
     default Set<String> getHijackedMixinConfigs(Context context) {
         return getHijackedMixinConfigs();

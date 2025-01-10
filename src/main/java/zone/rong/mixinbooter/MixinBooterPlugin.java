@@ -40,13 +40,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
     private static final Map<String, String> presentMods = new HashMap<>();
-    private static final Map<String, IMixinConfigHijacker> configHijackers = new HashMap<>();
 
     private static Field modApiManager$dataTable;
-
-    public static IMixinConfigHijacker getHijacker(String configName) {
-        return configHijackers.get(configName);
-    }
 
     static String getMinecraftVersion() {
         return (String) FMLInjectionData.data()[4];
@@ -162,6 +157,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
         Field fmlPluginWrapper$coreModInstance = null;
         Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
+        Collection<String> disabledConfigs = GlobalProperties.get(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS);
+        Context context = new Context(null, presentMods.values()); // For hijackers
         for (Object coremod : coremodList) {
             try {
                 if (fmlPluginWrapper$coreModInstance == null) {
@@ -171,8 +168,10 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 Object theMod = fmlPluginWrapper$coreModInstance.get(coremod);
                 if (theMod instanceof IMixinConfigHijacker) {
                     IMixinConfigHijacker interceptor = (IMixinConfigHijacker) theMod;
-                    for (String hijacked : interceptor.getHijackedMixinConfigs()) {
-                        configHijackers.put(hijacked, interceptor);
+                    logInfo("Loading config hijacker %s.", interceptor.getClass().getName());
+                    for (String hijacked : interceptor.getHijackedMixinConfigs(context)) {
+                        disabledConfigs.add(hijacked);
+                        logInfo("%s will hijack the mixin config %s", interceptor.getClass().getName(), hijacked);
                     }
                 }
                 if (theMod instanceof IEarlyMixinLoader) {
@@ -195,14 +194,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 for (String mixinConfig : queuedLoader.getMixinConfigs()) {
                     Context context = new Context(mixinConfig, presentMods.values());
                     if (queuedLoader.shouldMixinConfigQueue(context)) {
-                        IMixinConfigHijacker hijacker = getHijacker(mixinConfig);
-                        if (hijacker != null) {
-                            logInfo("Mixin configuration [%s] intercepted by [%s].", mixinConfig, hijacker.getClass().getName());
-                        } else {
-                            logInfo("Adding [%s] mixin configuration.", mixinConfig);
-                            Mixins.addConfiguration(mixinConfig);
-                            queuedLoader.onMixinConfigQueued(context);
-                        }
+                        logInfo("Adding [%s] mixin configuration.", mixinConfig);
+                        Mixins.addConfiguration(mixinConfig);
+                        queuedLoader.onMixinConfigQueued(context);
                     }
                 }
             } catch (Throwable t) {
