@@ -1,5 +1,18 @@
 # Changelog
 
+## [10.3] - 2025-01-14
+
+### Added
+- Context to `IMixinConfigHijacker`
+
+### Changed
+- Allowed all mixin configs to be hijacked
+
+### Fixed
+- Use `JsonReader#setLenient` over `GsonBuilder#setLenient` for older Gson versions supplied by older Minecraft versions
+- Use deprecated `Handle` constructor for older ASM versions supplied by older Minecraft versions
+- Catch loader issues instead of exiting and not loading subsequent loaders
+
 ## [10.2] - 2024-11-16
 
 ### Fixed
