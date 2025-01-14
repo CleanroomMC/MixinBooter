@@ -23,6 +23,7 @@ import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.transformer.Config;
+import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.fix.MixinFixer;
 import zone.rong.mixinbooter.util.MockedArtifactVersionAdapter;
 import zone.rong.mixinbooter.util.MockedMetadataCollection;
@@ -86,7 +87,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void addTransformationExclusions() {
         Launch.classLoader.addTransformerExclusion("scala.");
-        Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
+        // Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
     }
 
     private void initialize() {
@@ -98,12 +99,19 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Mixins.addConfiguration("mixin.mixinbooter.init.json");
 
         LOGGER.info("Initializing MixinExtras...");
-        MixinExtrasBootstrap.init();
+        this.initMixinExtras();
 
         MixinFixer.patchAncientModMixinsLoadingMethod();
 
         LOGGER.info("Gathering present mods...");
         this.gatherPresentMods();
+    }
+
+    private void initMixinExtras() {
+        if (!ASM.isAtLeastVersion(5, 1)) {
+            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.mixinextras.MixinExtrasFixer");
+        }
+        MixinExtrasBootstrap.init();
     }
 
     private void gatherPresentMods() {
