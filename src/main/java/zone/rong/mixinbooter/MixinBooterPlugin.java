@@ -3,7 +3,6 @@ package zone.rong.mixinbooter;
 import com.google.common.eventbus.EventBus;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonReader;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
@@ -23,10 +22,10 @@ import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.transformer.Config;
+import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.fix.MixinFixer;
-import zone.rong.mixinbooter.util.MockedArtifactVersionAdapter;
-import zone.rong.mixinbooter.util.MockedMetadataCollection;
+import zone.rong.mixinbooter.util.MockedModMetadata;
 
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
@@ -40,7 +39,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
 
-    private static final Map<String, String> presentMods = new HashMap<>();
+    private static final Map<String, String> presentJarsToMods = new HashMap<>();
+    private static final Set<String> presentMods = new HashSet<>();
+    private static final Set<String> unmodifiablePresentMods = Collections.unmodifiableSet(presentMods);
 
     private static Field modApiManager$dataTable;
 
@@ -115,24 +116,24 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void gatherPresentMods() {
-        Gson gson = new GsonBuilder().registerTypeAdapter(ArtifactVersion.class, new MockedArtifactVersionAdapter())
-                .create();
+        Gson gson = new GsonBuilder().create(); // TODO: Provide versioning for mods?
         try {
             Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
                 String fileName = getJarNameFromResource(url);
                 if (fileName != null) {
-                    String modId = parseMcmodInfo(gson, url);
-                    if (modId != null) {
-                        presentMods.put(fileName, modId);
+                    List<String> modIds = parseMcmodInfo(gson, url);
+                    if (!modIds.isEmpty()) {
+                        presentJarsToMods.put(fileName, modIds.get(0));
                     }
+                    presentMods.addAll(modIds);
                 }
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to gather present mods", e);
         }
-        logInfo("Finished gathering %d mods...", presentMods.size());
+        logInfo("Finished gathering %d coremods...", unmodifiablePresentMods.size());
     }
 
     private String getJarNameFromResource(URL url) {
@@ -146,27 +147,28 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         return null;
     }
 
-    private String parseMcmodInfo(Gson gson, URL url) {
+    private List<String> parseMcmodInfo(Gson gson, URL url) {
         try {
             JsonReader reader = new JsonReader(new InputStreamReader(url.openStream()));
             reader.setLenient(true);
-            JsonElement root = gson.fromJson(reader, JsonElement.class);
-            if (root.isJsonArray()) {
-                return gson.fromJson(new InputStreamReader(url.openStream()), ModMetadata[].class)[0].modId;
-            } else {
-                return gson.fromJson(new InputStreamReader(url.openStream()), MockedMetadataCollection.class).modList[0].modId;
+            List<String> ids = new ArrayList<>();
+            for (MockedModMetadata meta : gson.fromJson(new InputStreamReader(url.openStream()), MockedModMetadata[].class)) {
+                if (meta.modid != null) {
+                    ids.add(meta.modid);
+                }
             }
+            return ids;
         } catch (Throwable t) {
             logError("Failed to parse mcmod.info for %s", t, url);
-            return null;
         }
+        return Collections.emptyList();
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
         Field fmlPluginWrapper$coreModInstance = null;
         Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
         Collection<String> disabledConfigs = GlobalProperties.get(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS);
-        Context context = new Context(null, presentMods.values()); // For hijackers
+        Context context = new Context(null, unmodifiablePresentMods); // For hijackers
         for (Object coremod : coremodList) {
             try {
                 if (fmlPluginWrapper$coreModInstance == null) {
@@ -200,7 +202,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             logInfo("Loading early loader %s for its mixins.", queuedLoader.getClass().getName());
             try {
                 for (String mixinConfig : queuedLoader.getMixinConfigs()) {
-                    Context context = new Context(mixinConfig, presentMods.values());
+                    Context context = new Context(mixinConfig, unmodifiablePresentMods);
                     if (queuedLoader.shouldMixinConfigQueue(context)) {
                         logInfo("Adding [%s] mixin configuration.", mixinConfig);
                         Mixins.addConfiguration(mixinConfig);
@@ -248,7 +250,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         if (url != null) {
             String jar = this.getJarNameFromResource(url);
             if (jar != null) {
-                String modId = presentMods.get(jar);
+                String modId = presentJarsToMods.get(jar);
                 if (modId != null) {
                     return modId;
                 }
