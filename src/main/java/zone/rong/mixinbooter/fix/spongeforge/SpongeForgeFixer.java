@@ -19,6 +19,7 @@ public class SpongeForgeFixer implements IClassTransformer, Opcodes {
     @Override
     public byte[] transform(String name, String transformedName, byte[] classBytes) {
         if ("org.spongepowered.asm.util.PrettyPrinter".equals(name)) {
+            MixinBooterPlugin.LOGGER.info("Transforming PrettyPrinter to include old removed methods for SpongeForge.");
             return transformPrettyPrinter(classBytes);
         }
         return classBytes;
@@ -327,7 +328,7 @@ public class SpongeForgeFixer implements IClassTransformer, Opcodes {
         method.visitMaxs(11, 4);
         method.visitEnd();
 
-        ClassWriter writer = new ClassWriter(0);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
         return writer.toByteArray();
     }

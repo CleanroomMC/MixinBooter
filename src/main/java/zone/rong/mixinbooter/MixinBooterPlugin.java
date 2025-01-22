@@ -106,6 +106,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
         LOGGER.info("Gathering present mods...");
         this.gatherPresentMods();
+
+        this.afterAll();
     }
 
     private void initMixinExtras() {
@@ -113,6 +115,15 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.mixinextras.MixinExtrasFixer");
         }
         MixinExtrasBootstrap.init();
+    }
+
+    private void afterAll() {
+        if (unmodifiablePresentMods.contains("spongeforge")) {
+            LOGGER.info("Registering SpongeForgeFixer transformer to solve issues pertaining SpongeForge.");
+            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
+            // Eagerly load PrettyPrinter class for transformation
+            new PrettyPrinter();
+        }
     }
 
     private void gatherPresentMods() {
@@ -186,9 +197,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 }
                 if (theMod instanceof IEarlyMixinLoader) {
                     queuedLoaders.add((IEarlyMixinLoader) theMod);
-                } else if ("org.spongepowered.mod.SpongeCoremod".equals(theMod.getClass().getName())) {
-                    LOGGER.info("Registering SpongeForgeFixer transformer to solve issues pertaining SpongeForge.");
-                    Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
                 }
             } catch (Throwable t) {
                 LOGGER.error("Unexpected error", t);
