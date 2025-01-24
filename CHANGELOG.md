@@ -1,5 +1,14 @@
 # Changelog
 
+## [10.4] - 2025-01-24
+
+### Changed
+- Made reading mod metadata quicker and simpler
+- Updated MixinExtras to 0.5.0-beta.5
+
+### Fixed
+- SpongeForge compatibility, due to a Forge oversight
+
 ## [10.3] - 2025-01-14
 
 ### Added
