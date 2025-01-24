@@ -118,6 +118,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
             // Eagerly load PrettyPrinter class for transformation
             new PrettyPrinter();
+            // Also apply eagerly loading of Event.class in the EventSubscriptionTransformer
+            // While technically a Forge bug, it manifests when SpongeForge is installed with Mixin 0.8.5+
+            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.forge.EagerlyLoadEventClassTransformer");
         }
     }
 
