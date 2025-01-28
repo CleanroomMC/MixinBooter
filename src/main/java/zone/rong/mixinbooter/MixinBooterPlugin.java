@@ -1,8 +1,6 @@
 package zone.rong.mixinbooter;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.*;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
@@ -20,7 +18,6 @@ import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.fix.MixinFixer;
-import zone.rong.mixinbooter.util.MockedModMetadata;
 
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
@@ -125,7 +122,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void gatherPresentMods() {
-        Gson gson = new GsonBuilder().create(); // TODO: Provide versioning for mods?
+        Gson gson = new GsonBuilder().setLenient().create(); // TODO: Provide versioning for mods?
         try {
             Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
             while (resources.hasMoreElements()) {
@@ -139,10 +136,18 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                     presentMods.addAll(modIds);
                 }
             }
+
+            URL optifineConfigClass = Launch.classLoader.findResource("Config.class");
+            if (optifineConfigClass != null) {
+                presentJarsToMods.put(getJarNameFromResource(optifineConfigClass), "optifine");
+                presentMods.add("optifine");
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to gather present mods", e);
         }
+
         logInfo("Finished gathering %d coremods...", unmodifiablePresentMods.size());
+        logDebug("Coremods gathered: %s", String.join(", ", unmodifiablePresentMods));
     }
 
     private String getJarNameFromResource(URL url) {
@@ -158,12 +163,19 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private List<String> parseMcmodInfo(Gson gson, URL url) {
         try {
-            JsonReader reader = new JsonReader(new InputStreamReader(url.openStream()));
-            reader.setLenient(true);
             List<String> ids = new ArrayList<>();
-            for (MockedModMetadata meta : gson.fromJson(new InputStreamReader(url.openStream()), MockedModMetadata[].class)) {
-                if (meta.modid != null) {
-                    ids.add(meta.modid);
+            JsonElement root = gson.fromJson(new InputStreamReader(url.openStream()), JsonElement.class);
+            if (root.isJsonArray()) {
+                for (JsonElement element : root.getAsJsonArray()) {
+                    if (element.isJsonObject()) {
+                        ids.add(element.getAsJsonObject().get("modid").getAsString());
+                    }
+                }
+            } else {
+                for (JsonElement element : root.getAsJsonObject().get("modList").getAsJsonArray()) {
+                    if (element.isJsonObject()) {
+                        ids.add(element.getAsJsonObject().get("modid").getAsString());
+                    }
                 }
             }
             return ids;
@@ -275,15 +287,16 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     @SuppressWarnings("StringConcatenationArgumentToLogCall")
     public static void logInfo(String message, Object... params) {
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info(String.format(message, params));
-        }
+        LOGGER.info(String.format(message, params));
     }
 
     @SuppressWarnings("StringConcatenationArgumentToLogCall")
     public static void logError(String message, Throwable t, Object... params) {
-        if (LOGGER.isErrorEnabled()) {
-            LOGGER.error(String.format(message, params), t);
-        }
+        LOGGER.error(String.format(message, params), t);
+    }
+
+    @SuppressWarnings("StringConcatenationArgumentToLogCall")
+    public static void logDebug(String message, Object... params) {
+        LOGGER.debug(String.format(message, params));
     }
 }
