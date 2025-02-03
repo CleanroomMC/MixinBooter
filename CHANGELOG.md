@@ -1,5 +1,14 @@
 # Changelog
 
+## [10.5] - 2025-02-03
+
+### Added
+- Explicit compatibility with checking if Optifine is loaded at coremod stages (for the Context obj)
+- Hotswap Agent related manifest entries to allow hotswapping outside of dev
+
+### Fixed
+- Edge-cases in reading some mods' mcmod.infos
+
 ## [10.4] - 2025-01-24
 
 ### Changed
