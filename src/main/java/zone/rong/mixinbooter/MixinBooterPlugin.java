@@ -122,7 +122,14 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void gatherPresentMods() {
-        Gson gson = new GsonBuilder().setLenient().create(); // TODO: Provide versioning for mods?
+        // TODO: Provide versioning for mods?
+        Gson gson;
+        try {
+            gson = new GsonBuilder().setLenient().create();
+        } catch (NoSuchMethodError e) {
+            // Older gsons
+            gson = new GsonBuilder().create();
+        }
         try {
             Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
             while (resources.hasMoreElements()) {
