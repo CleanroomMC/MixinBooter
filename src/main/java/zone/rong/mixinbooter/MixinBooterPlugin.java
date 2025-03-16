@@ -61,13 +61,16 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         return null;
     }
 
+    static Collection<IEarlyMixinLoader> earlyLoaders = new LinkedHashSet<>();
+
     @Override
     public void injectData(Map<String, Object> data) {
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
-            Collection<IEarlyMixinLoader> earlyLoaders = this.gatherEarlyLoaders((List) coremodList);
+            this.gatherEarlyLoaders(earlyLoaders, (List) coremodList);
             this.loadEarlyLoaders(earlyLoaders);
             this.recordConfigOwners();
+            earlyLoaders.clear();
         } else {
             throw new RuntimeException("Blackboard property 'coremodList' must be of type List, early loaders were not able to be gathered");
         }
@@ -192,9 +195,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         return Collections.emptyList();
     }
 
-    private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
+    private Collection<IEarlyMixinLoader> gatherEarlyLoaders(Collection<IEarlyMixinLoader> queuedLoaders, List coremodList) {
         Field fmlPluginWrapper$coreModInstance = null;
-        Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
         Collection<String> disabledConfigs = GlobalProperties.get(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS);
         Context context = new Context(null, unmodifiablePresentMods); // For hijackers
         for (Object coremod : coremodList) {
