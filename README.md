@@ -3,7 +3,7 @@
 
 - Current Mixin Version: [UniMix 0.15.3 forked by CleanroomMC, derived from 0.8.7 branch by LegacyModdingMC](https://github.com/CleanroomMC/UniMix)
 
-- Current MixinExtra Version: [0.5.0-beta5](https://github.com/LlamaLad7/MixinExtras)
+- Current MixinExtra Version: [0.5.0-rc.1](https://github.com/LlamaLad7/MixinExtras)
 
 ### Pseudo-Changelog:
 
