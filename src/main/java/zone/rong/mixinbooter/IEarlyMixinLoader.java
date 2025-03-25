@@ -54,4 +54,12 @@ public interface IEarlyMixinLoader {
      */
     default void onMixinConfigQueued(String mixinConfig) { }
 
+    /**
+     * Manually enqueue an {@link IEarlyMixinLoader}.
+     * @param loader loader
+     */
+    public static void enqueueEarlyMixinLoader(IEarlyMixinLoader loader) {
+        MixinBooterPlugin.earlyLoaders.add(loader);
+    }
+
 }
