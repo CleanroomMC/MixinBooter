@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.6] - 2025-03-25
+
+### Changed
+- Updated MixinExtras from 0.5.0-beta.5 to 0.5.0-rc.1
+
+### Fixed
+- GsonBuilder#setLenient not existing on older Gson versions
+
 ## [10.5] - 2025-02-03
 
 ### Added
