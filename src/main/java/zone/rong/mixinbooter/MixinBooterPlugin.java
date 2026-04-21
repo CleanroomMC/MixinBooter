@@ -4,8 +4,6 @@ import com.google.gson.*;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.*;
-import net.minecraftforge.fml.common.discovery.ASMDataTable;
-import net.minecraftforge.fml.common.discovery.ModCandidate;
 import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +19,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.*;
-import java.util.function.Supplier;
 
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
@@ -65,7 +62,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         if (coremodList instanceof List) {
             Collection<IEarlyMixinLoader> earlyLoaders = this.gatherEarlyLoaders((List) coremodList);
             this.loadEarlyLoaders(earlyLoaders);
-            this.recordConfigOwners();
         } else {
             throw new RuntimeException("Blackboard property 'coremodList' must be of type List, early loaders were not able to be gathered");
         }
@@ -233,50 +229,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 logError("Failed to execute early loader [%s].", t, queuedLoader.getClass().getName());
             }
         }
-    }
-
-    private void recordConfigOwners() {
-        for (Config config : Mixins.getConfigs()) {
-            if (!config.getConfig().hasDecoration(ModUtil.OWNER_DECORATOR)) {
-                config.getConfig().decorate(ModUtil.OWNER_DECORATOR, (Supplier) () -> this.retrieveConfigOwner(config));
-            }
-        }
-    }
-
-    private String retrieveConfigOwner(Config config) {
-        if (modApiManager$dataTable == null) {
-            try {
-                modApiManager$dataTable = ModAPIManager.class.getDeclaredField("dataTable");
-                modApiManager$dataTable.setAccessible(true);
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException("Unable to reflectively retrieve ModAPIManager#dataTable", e);
-            }
-        }
-        try {
-            ASMDataTable table = (ASMDataTable) modApiManager$dataTable.get(ModAPIManager.INSTANCE);
-            if (table != null) {
-                String pkg = config.getConfig().getMixinPackage();
-                pkg = pkg.charAt(pkg.length() - 1) == '.' ? pkg.substring(0, pkg.length() - 1) : pkg;
-                ModCandidate candidate = table.getCandidatesFor(pkg).stream().findFirst().orElse(null);
-                if (candidate != null) {
-                    ModContainer container = candidate.getContainedMods().get(0);
-                    if (container != null) {
-                        return container.getModId();
-                    }
-                }
-            }
-        } catch (IllegalAccessException ignore) { }
-        URL url = Launch.classLoader.getResource(config.getName());
-        if (url != null) {
-            String jar = this.getJarNameFromResource(url);
-            if (jar != null) {
-                String modId = presentJarsToMods.get(jar);
-                if (modId != null) {
-                    return modId;
-                }
-            }
-        }
-        return ModUtil.UNKNOWN_OWNER;
     }
 
     /*
