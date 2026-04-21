@@ -53,15 +53,6 @@ tasks.injectTags.configure {
     outputClassName.set("zone.rong.mixinbooter.Tags")
 }
 
-sourceSets {
-    relocate {
-        compileClasspath += sourceSets.main.compileClasspath
-        runtimeClasspath += sourceSets.main.runtimeClasspath
-        compileClasspath += sourceSets.main.output
-        runtimeClasspath += sourceSets.main.output
-    }
-}
-
 configurations {
     mod
     maven
@@ -149,9 +140,6 @@ tasks.register('properJar', Jar) { jar ->
     // Gather all main source/resource files, excluding any META-INF and replaceable files
     from sourceSets.main.output
 
-    // Gather relocate source set's source files
-    from sourceSets.relocate.output
-
     // Gather embed dependencies, while excluding any replaceable files and META-INF services
     from(provider {
         configurations.mod.collect {
@@ -194,9 +182,6 @@ tasks.register('properSourcesJar', Jar) { jar ->
 
     // Gather all of our own source files
     from sourceSets.main.allSource
-
-    // Gather all of relocated source files
-    from sourceSets.relocate.allSource
 
     // Gather sources of embed dependencies
     def componentIds = configurations.mod.incoming.resolutionResult.allDependencies.collect { it.selected.id }
