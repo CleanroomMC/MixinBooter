@@ -10,10 +10,8 @@ import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.Mixins;
-import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.asm.util.asm.ASM;
@@ -84,8 +82,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void initialize() {
-        GlobalProperties.put(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS, new HashSet<>());
-
         LOGGER.info("Initializing Mixins...");
         MixinBootstrap.init();
 
@@ -195,7 +191,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
         Field fmlPluginWrapper$coreModInstance = null;
         Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
-        Collection<String> disabledConfigs = GlobalProperties.get(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS);
         Context context = new Context(null, unmodifiablePresentMods); // For hijackers
         for (Object coremod : coremodList) {
             try {
@@ -208,7 +203,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                     IMixinConfigHijacker interceptor = (IMixinConfigHijacker) theMod;
                     logInfo("Loading config hijacker %s.", interceptor.getClass().getName());
                     for (String hijacked : interceptor.getHijackedMixinConfigs(context)) {
-                        disabledConfigs.add(hijacked);
+                        Config.blacklist(hijacked);
                         logInfo("%s will hijack the mixin config %s", interceptor.getClass().getName(), hijacked);
                     }
                 }
