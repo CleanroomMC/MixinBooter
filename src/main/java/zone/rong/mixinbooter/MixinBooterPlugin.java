@@ -4,11 +4,11 @@ import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
+import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
+import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.fix.MixinFixer;
@@ -21,7 +21,7 @@ import java.util.*;
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
-    public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
+    public static final ILogger LOGGER = MixinService.getService().getLogger("MixinBooter");
 
     static String getMinecraftVersion() {
         return (String) FMLInjectionData.data()[4];
@@ -117,10 +117,10 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 Object theMod = fmlPluginWrapper$coreModInstance.get(coremod);
                 if (theMod instanceof IMixinConfigHijacker) {
                     IMixinConfigHijacker interceptor = (IMixinConfigHijacker) theMod;
-                    logInfo("Loading config hijacker %s.", interceptor.getClass().getName());
+                    LOGGER.info("Loading config hijacker {}.", interceptor.getClass().getName());
                     for (String hijacked : interceptor.getHijackedMixinConfigs(context)) {
                         Config.blacklist(hijacked);
-                        logInfo("%s will hijack the mixin config %s", interceptor.getClass().getName(), hijacked);
+                        LOGGER.info("{} will hijack the mixin config {}", interceptor.getClass().getName(), hijacked);
                     }
                 }
                 if (theMod instanceof IEarlyMixinLoader) {
@@ -135,42 +135,20 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     private void loadEarlyLoaders(Collection<IEarlyMixinLoader> queuedLoaders) {
         for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
-            logInfo("Loading early loader %s for its mixins.", queuedLoader.getClass().getName());
+            LOGGER.info("Loading early loader {} for its mixins.", queuedLoader.getClass().getName());
             try {
                 for (String mixinConfig : queuedLoader.getMixinConfigs()) {
                     Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
                     if (queuedLoader.shouldMixinConfigQueue(context)) {
-                        logInfo("Adding [%s] mixin configuration.", mixinConfig);
+                        LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
                         Mixins.addConfiguration(mixinConfig);
                         queuedLoader.onMixinConfigQueued(context);
                     }
                 }
             } catch (Throwable t) {
-                logError("Failed to execute early loader [%s].", t, queuedLoader.getClass().getName());
+                LOGGER.error("Failed to execute early loader [{}].", queuedLoader.getClass().getName(), t);
             }
         }
     }
 
-    /*
-     * Minecraft 1.8.x uses a beta version of Log4j2 with a slightly different
-     * API for parameterized logging than ended up in the releases used by 1.12+.
-     *
-     * The following methods act as a workaround for that issue while keeping the
-     * performance conscious "log only if enabled" approach employed by Log4j2 internally.
-     */
-
-    @SuppressWarnings("StringConcatenationArgumentToLogCall")
-    public static void logInfo(String message, Object... params) {
-        LOGGER.info(String.format(message, params));
-    }
-
-    @SuppressWarnings("StringConcatenationArgumentToLogCall")
-    public static void logError(String message, Throwable t, Object... params) {
-        LOGGER.error(String.format(message, params), t);
-    }
-
-    @SuppressWarnings("StringConcatenationArgumentToLogCall")
-    public static void logDebug(String message, Object... params) {
-        LOGGER.debug(String.format(message, params));
-    }
 }

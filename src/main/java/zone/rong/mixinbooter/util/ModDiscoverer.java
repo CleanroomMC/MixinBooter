@@ -6,8 +6,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import net.minecraft.launchwrapper.Launch;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.logging.ILogger;
+import org.spongepowered.asm.service.MixinService;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.util.zip.ZipEntry;
  */
 public final class ModDiscoverer {
 
-    private static final Logger LOGGER = LogManager.getLogger("MixinBooter");
+    private static final ILogger LOGGER = MixinService.getService().getLogger("MixinBooter");
 
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = HashMultimap.create();
@@ -86,8 +86,8 @@ public final class ModDiscoverer {
             }
         }
 
-        logInfo("Finished gathering %d mods...", modIdToFiles.keySet().size());
-        logDebug("Mods gathered: %s", String.join(", ", modIdToFiles.keySet()));
+        LOGGER.info("Finished gathering {} mods...", modIdToFiles.keySet().size());
+        LOGGER.debug("Mods gathered: {}", String.join(", ", modIdToFiles.keySet()));
     }
 
     private static void scanDirectory(Gson gson, File dir) {
@@ -112,7 +112,7 @@ public final class ModDiscoverer {
                 }
             }
         } catch (IOException e) {
-            logError("Failed to read mod metadata from %s", e, jar.getName());
+            LOGGER.error("Failed to read mod metadata from {}", jar.getName(), e);
         }
     }
 
@@ -140,7 +140,7 @@ public final class ModDiscoverer {
             }
             return ids;
         } catch (Throwable t) {
-            logError("Failed to parse mcmod.info", t);
+            LOGGER.error("Failed to parse mcmod.info", t);
         }
         return Collections.emptyList();
     }
@@ -159,21 +159,6 @@ public final class ModDiscoverer {
 
     public static Set<String> getSourceMods(File source) {
         return Collections.unmodifiableSet(fileToModIds.get(source));
-    }
-
-    @SuppressWarnings("StringConcatenationArgumentToLogCall")
-    private static void logInfo(String message, Object... params) {
-        LOGGER.info(String.format(message, params));
-    }
-
-    @SuppressWarnings("StringConcatenationArgumentToLogCall")
-    private static void logError(String message, Throwable t, Object... params) {
-        LOGGER.error(String.format(message, params), t);
-    }
-
-    @SuppressWarnings("StringConcatenationArgumentToLogCall")
-    private static void logDebug(String message, Object... params) {
-        LOGGER.debug(String.format(message, params));
     }
 
 }

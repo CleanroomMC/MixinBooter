@@ -9,9 +9,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.Proxy;
+import org.spongepowered.asm.logging.ILogger;
+import org.spongepowered.asm.service.MixinService;
 import zone.rong.mixinbooter.Context;
 import zone.rong.mixinbooter.ILateMixinLoader;
-import zone.rong.mixinbooter.MixinBooterPlugin;
 import zone.rong.mixinbooter.MixinLoader;
 import zone.rong.mixinbooter.fix.MixinFixer;
 import zone.rong.mixinbooter.util.ModDiscoverer;
@@ -29,7 +30,8 @@ public class LoadControllerMixin {
 
     @Inject(method = "distributeStateMessage(Lnet/minecraftforge/fml/common/LoaderState;[Ljava/lang/Object;)V", at = @At("HEAD"))
     private void beforeConstructing(LoaderState state, Object[] eventData, CallbackInfo ci) throws Throwable {
-        if (state == LoaderState.CONSTRUCTING) { // This state is where Forge adds mod files to ModClassLoader
+        if (state == LoaderState.CONSTRUCTING) {
+            ILogger logger = MixinService.getService().getLogger("MixinBooter"); // This state is where Forge adds mod files to ModClassLoader
 
             ModClassLoader modClassLoader = (ModClassLoader) eventData[0];
             ASMDataTable asmDataTable = (ASMDataTable) eventData[1];
@@ -50,7 +52,7 @@ public class LoadControllerMixin {
                 for (ASMDataTable.ASMData annotated : annotatedData) {
                     try {
                         Class<?> clazz = Class.forName(annotated.getClassName());
-                        MixinBooterPlugin.logInfo("Loading annotated late loader [%s] for its mixins.", clazz.getName());
+                        logger.info("Loading annotated late loader [{}] for its mixins.", clazz.getName());
                         Object instance = clazz.newInstance();
                         if (instance instanceof ILateMixinLoader) {
                             lateLoaders.add((ILateMixinLoader) instance);
@@ -66,7 +68,7 @@ public class LoadControllerMixin {
                 for (ASMDataTable.ASMData itf : interfaceData) {
                     try {
                         Class<?> clazz = Class.forName(itf.getClassName().replace('/', '.'));
-                        MixinBooterPlugin.logInfo("Loading late loader [%s] for its mixins.", clazz.getName());
+                        logger.info("Loading late loader [{}] for its mixins.", clazz.getName());
                         lateLoaders.add((ILateMixinLoader) clazz.newInstance());
                     } catch (Throwable t) {
                         throw new RuntimeException("Unexpected error.", t);
@@ -78,13 +80,13 @@ public class LoadControllerMixin {
                         for (String mixinConfig : lateLoader.getMixinConfigs()) {
                             Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
                             if (lateLoader.shouldMixinConfigQueue(context)) {
-                                MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
+                                logger.info("Adding [{}] mixin configuration.", mixinConfig);
                                 Mixins.addConfiguration(mixinConfig);
                                 lateLoader.onMixinConfigQueued(context);
                             }
                         }
                     } catch (Throwable t) {
-                        MixinBooterPlugin.logError("Failed to execute late loader [%s].", t, lateLoader.getClass().getName());
+                        logger.error("Failed to execute late loader [{}].", lateLoader.getClass().getName(), t);
                     }
                 }
             }
@@ -92,9 +94,9 @@ public class LoadControllerMixin {
             // Append all unconventional mixin configurations gathered via MixinFixer
             Set<String> unconventionalConfigs = MixinFixer.retrieveLateMixinConfigs();
             if (!unconventionalConfigs.isEmpty()) {
-                MixinBooterPlugin.LOGGER.info("Appending unconventional mixin configurations...");
+                logger.info("Appending unconventional mixin configurations...");
                 for (String unconventionalConfig : unconventionalConfigs) {
-                    MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", unconventionalConfig);
+                    logger.info("Adding [{}] mixin configuration.", unconventionalConfig);
                     Mixins.addConfiguration(unconventionalConfig);
                 }
             }
