@@ -9,13 +9,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.transformer.Proxy;
-import zone.rong.mixinbooter.*;
+import zone.rong.mixinbooter.Context;
+import zone.rong.mixinbooter.ILateMixinLoader;
+import zone.rong.mixinbooter.MixinBooterPlugin;
+import zone.rong.mixinbooter.MixinLoader;
 import zone.rong.mixinbooter.fix.MixinFixer;
+import zone.rong.mixinbooter.util.ModDiscoverer;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Mixin that allows us to load "late" mixins for mods.
@@ -71,13 +73,10 @@ public class LoadControllerMixin {
                     }
                 }
 
-                // Gather loaded mods for context
-                Collection<String> presentMods = this.loader.getActiveModList().stream().map(ModContainer::getModId).collect(Collectors.toSet());
-
                 for (ILateMixinLoader lateLoader : lateLoaders) {
                     try {
                         for (String mixinConfig : lateLoader.getMixinConfigs()) {
-                            Context context = new Context(mixinConfig, presentMods);
+                            Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
                             if (lateLoader.shouldMixinConfigQueue(context)) {
                                 MixinBooterPlugin.logInfo("Adding [%s] mixin configuration.", mixinConfig);
                                 Mixins.addConfiguration(mixinConfig);

@@ -1,9 +1,7 @@
 package zone.rong.mixinbooter;
 
-import com.google.gson.*;
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
@@ -14,10 +12,9 @@ import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.fix.MixinFixer;
+import zone.rong.mixinbooter.util.ModDiscoverer;
 
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
-import java.net.URL;
 import java.util.*;
 
 @IFMLLoadingPlugin.Name("MixinBooter")
@@ -25,12 +22,6 @@ import java.util.*;
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     public static final Logger LOGGER = LogManager.getLogger("MixinBooter");
-
-    private static final Map<String, String> presentJarsToMods = new HashMap<>();
-    private static final Set<String> presentMods = new HashSet<>();
-    private static final Set<String> unmodifiablePresentMods = Collections.unmodifiableSet(presentMods);
-
-    private static Field modApiManager$dataTable;
 
     static String getMinecraftVersion() {
         return (String) FMLInjectionData.data()[4];
@@ -89,7 +80,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         MixinFixer.patchAncientModMixinsLoadingMethod();
 
         LOGGER.info("Gathering present mods...");
-        this.gatherPresentMods();
+        ModDiscoverer.discover(getMinecraftVersion());
 
         this.afterAll();
     }
@@ -102,7 +93,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private void afterAll() {
-        if (unmodifiablePresentMods.contains("spongeforge")) {
+        if (ModDiscoverer.isModPresent("spongeforge")) {
             LOGGER.info("Registering SpongeForgeFixer transformer to solve issues pertaining SpongeForge.");
             Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
             // Eagerly load PrettyPrinter class for transformation
@@ -113,81 +104,10 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         }
     }
 
-    private void gatherPresentMods() {
-        // TODO: Provide versioning for mods?
-        Gson gson;
-        try {
-            gson = new GsonBuilder().setLenient().create();
-        } catch (NoSuchMethodError e) {
-            // Older gsons
-            gson = new GsonBuilder().create();
-        }
-        try {
-            Enumeration<URL> resources = Launch.classLoader.getResources("mcmod.info");
-            while (resources.hasMoreElements()) {
-                URL url = resources.nextElement();
-                String fileName = getJarNameFromResource(url);
-                if (fileName != null) {
-                    List<String> modIds = parseMcmodInfo(gson, url);
-                    if (!modIds.isEmpty()) {
-                        presentJarsToMods.put(fileName, modIds.get(0));
-                    }
-                    presentMods.addAll(modIds);
-                }
-            }
-
-            URL optifineConfigClass = Launch.classLoader.findResource("Config.class");
-            if (optifineConfigClass != null) {
-                presentJarsToMods.put(getJarNameFromResource(optifineConfigClass), "optifine");
-                presentMods.add("optifine");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to gather present mods", e);
-        }
-
-        logInfo("Finished gathering %d coremods...", unmodifiablePresentMods.size());
-        logDebug("Coremods gathered: %s", String.join(", ", unmodifiablePresentMods));
-    }
-
-    private String getJarNameFromResource(URL url) {
-        if (url.getPath().contains("!/")) {
-            String filePath = url.getPath().split("!/")[0];
-            String[] parts = filePath.split("/");
-            if (parts.length != 0) {
-                return parts[parts.length - 1];
-            }
-        }
-        return null;
-    }
-
-    private List<String> parseMcmodInfo(Gson gson, URL url) {
-        try {
-            List<String> ids = new ArrayList<>();
-            JsonElement root = gson.fromJson(new InputStreamReader(url.openStream()), JsonElement.class);
-            if (root.isJsonArray()) {
-                for (JsonElement element : root.getAsJsonArray()) {
-                    if (element.isJsonObject()) {
-                        ids.add(element.getAsJsonObject().get("modid").getAsString());
-                    }
-                }
-            } else {
-                for (JsonElement element : root.getAsJsonObject().get("modList").getAsJsonArray()) {
-                    if (element.isJsonObject()) {
-                        ids.add(element.getAsJsonObject().get("modid").getAsString());
-                    }
-                }
-            }
-            return ids;
-        } catch (Throwable t) {
-            logError("Failed to parse mcmod.info for %s", t, url);
-        }
-        return Collections.emptyList();
-    }
-
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
         Field fmlPluginWrapper$coreModInstance = null;
         Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
-        Context context = new Context(null, unmodifiablePresentMods); // For hijackers
+        Context context = new Context(null, ModDiscoverer.getPresentMods()); // For hijackers
         for (Object coremod : coremodList) {
             try {
                 if (fmlPluginWrapper$coreModInstance == null) {
@@ -218,7 +138,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             logInfo("Loading early loader %s for its mixins.", queuedLoader.getClass().getName());
             try {
                 for (String mixinConfig : queuedLoader.getMixinConfigs()) {
-                    Context context = new Context(mixinConfig, unmodifiablePresentMods);
+                    Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
                     if (queuedLoader.shouldMixinConfigQueue(context)) {
                         logInfo("Adding [%s] mixin configuration.", mixinConfig);
                         Mixins.addConfiguration(mixinConfig);
