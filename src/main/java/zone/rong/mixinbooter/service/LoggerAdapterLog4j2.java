@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.spongepowered.asm.logging.Level;
 import org.spongepowered.asm.logging.LoggerAdapterAbstract;
 
-public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
+class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
 
     private static final org.apache.logging.log4j.Level[] LEVELS = {
         org.apache.logging.log4j.Level.FATAL,
@@ -17,7 +17,7 @@ public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
 
     private final org.apache.logging.log4j.Logger logger;
 
-    public LoggerAdapterLog4j2(String name) {
+    LoggerAdapterLog4j2(String name) {
         super(name);
         this.logger = LogManager.getLogger(name);
     }

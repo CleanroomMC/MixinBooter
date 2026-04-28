@@ -14,7 +14,7 @@ import org.spongepowered.asm.service.MixinService;
 import zone.rong.mixinbooter.Context;
 import zone.rong.mixinbooter.ILateMixinLoader;
 import zone.rong.mixinbooter.MixinLoader;
-import zone.rong.mixinbooter.fix.MixinFixer;
+import zone.rong.mixinbooter.Tags;
 import zone.rong.mixinbooter.util.ModDiscoverer;
 
 import java.util.HashSet;
@@ -31,7 +31,7 @@ public class LoadControllerMixin {
     @Inject(method = "distributeStateMessage(Lnet/minecraftforge/fml/common/LoaderState;[Ljava/lang/Object;)V", at = @At("HEAD"))
     private void beforeConstructing(LoaderState state, Object[] eventData, CallbackInfo ci) throws Throwable {
         if (state == LoaderState.CONSTRUCTING) {
-            ILogger logger = MixinService.getService().getLogger("MixinBooter"); // This state is where Forge adds mod files to ModClassLoader
+            ILogger logger = MixinService.getService().getLogger(Tags.MOD_NAME);
 
             ModClassLoader modClassLoader = (ModClassLoader) eventData[0];
             ASMDataTable asmDataTable = (ASMDataTable) eventData[1];
@@ -90,17 +90,6 @@ public class LoadControllerMixin {
                     }
                 }
             }
-
-            // Append all unconventional mixin configurations gathered via MixinFixer
-            Set<String> unconventionalConfigs = MixinFixer.retrieveLateMixinConfigs();
-            if (!unconventionalConfigs.isEmpty()) {
-                logger.info("Appending unconventional mixin configurations...");
-                for (String unconventionalConfig : unconventionalConfigs) {
-                    logger.info("Adding [{}] mixin configuration.", unconventionalConfig);
-                    Mixins.addConfiguration(unconventionalConfig);
-                }
-            }
-
             Proxy.refreshMixins();
         }
     }

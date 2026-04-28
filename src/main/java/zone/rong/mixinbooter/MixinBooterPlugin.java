@@ -9,9 +9,7 @@ import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
-import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.asm.util.asm.ASM;
-import zone.rong.mixinbooter.fix.MixinFixer;
 import zone.rong.mixinbooter.util.ModDiscoverer;
 
 import java.lang.reflect.Field;
@@ -77,12 +75,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         LOGGER.info("Initializing MixinExtras...");
         this.initMixinExtras();
 
-        MixinFixer.patchAncientModMixinsLoadingMethod();
-
         LOGGER.info("Gathering present mods...");
         ModDiscoverer.discover(getMinecraftVersion());
-
-        this.afterAll();
     }
 
     private void initMixinExtras() {
@@ -90,18 +84,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.mixinextras.MixinExtrasFixer");
         }
         MixinExtrasBootstrap.init();
-    }
-
-    private void afterAll() {
-        if (ModDiscoverer.isModPresent("spongeforge")) {
-            LOGGER.info("Registering SpongeForgeFixer transformer to solve issues pertaining SpongeForge.");
-            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.spongeforge.SpongeForgeFixer");
-            // Eagerly load PrettyPrinter class for transformation
-            new PrettyPrinter();
-            // Also apply eagerly loading of Event.class in the EventSubscriptionTransformer
-            // While technically a Forge bug, it manifests when SpongeForge is installed with Mixin 0.8.5+
-            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.forge.EagerlyLoadEventClassTransformer");
-        }
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
