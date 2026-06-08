@@ -35,9 +35,9 @@ minecraft {
     extraRunJvmArguments.addAll([
             "-ea:${project.group}",
             '-Dmixin.checks.interfaces=true',
-            '-Dmixin.debug.export=true'
+            '-Dmixin.debug.export=true',
+            "-Dfml.coreMods.load=${coremod_plugin_name}"
     ])
-    extraTweakClasses.add('org.spongepowered.asm.launch.MixinTweaker')
     injectedTags.put('VERSION', project.version)
     injectedTags.put('MOD_ID', project.base.archivesName)
     injectedTags.put('MOD_NAME', project.mod_name)
@@ -135,7 +135,7 @@ tasks.register('properJar', Jar) { jar ->
     }
 
     // Set output jar name to have an exclamation mark at the front
-    jar.archiveBaseName.set("!${project.archivesBaseName}")
+    jar.archiveBaseName.set("!${project.base.archivesName.get()}")
 
     // Gather all main source/resource files, excluding any META-INF and replaceable files
     from sourceSets.main.output
@@ -160,7 +160,6 @@ tasks.register('properJar', Jar) { jar ->
 
     manifest {
         def attribute_map = [:]
-        attribute_map['TweakClass'] = 'org.spongepowered.asm.launch.MixinTweaker'
         attribute_map['FMLCorePlugin'] = coremod_plugin_name
         attribute_map['FMLCorePluginContainsFMLMod'] = true
         attribute_map['ForceLoadAsMod'] = project.gradle.startParameter.taskNames[0] == "build"
@@ -168,6 +167,7 @@ tasks.register('properJar', Jar) { jar ->
         attribute_map['Agent-Class'] = 'org.spongepowered.tools.agent.MixinAgent'
         attribute_map['Can-Redefine-Classes'] = true
         attribute_map['Can-Retransform-Classes'] = true
+        attribute_map['MixinConfigs'] = 'mixin.mixinbooter.init.json'
 
         attributes(attribute_map)
     }
@@ -242,7 +242,7 @@ publishing {
         mavenJava(MavenPublication) {
             // from components.java
             groupId project.group
-            // artifactId project.archivesBaseName
+            artifactId project.base.archivesName.get()
             artifact tasks.named('properJar')
             artifact tasks.named('properSourcesJar')
             artifact tasks.named('javadocJar')
