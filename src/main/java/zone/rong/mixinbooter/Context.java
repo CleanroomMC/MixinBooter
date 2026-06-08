@@ -1,7 +1,7 @@
 package zone.rong.mixinbooter;
 
-import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import org.apache.commons.lang3.SystemUtils;
+import zone.rong.mixinbooter.util.Environment;
 
 import java.util.Collection;
 
@@ -17,7 +17,6 @@ public final class Context {
         FORGE,
         CLEANROOM;
 
-        // Something more robust in the future
         private static final ModLoader CURRENT = SystemUtils.IS_JAVA_1_8 ? FORGE : CLEANROOM;
 
     }
@@ -41,7 +40,7 @@ public final class Context {
      * @return if the current environment is in-dev
      */
     public boolean inDev() {
-        return FMLLaunchHandler.isDeobfuscatedEnvironment();
+        return Environment.inDev();
     }
 
     /**
