@@ -1,0 +1,9 @@
+{
+  "package": "com.example.dependent.mixin.late",
+  "required": true,
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "LateMixin"
+  ]
+}

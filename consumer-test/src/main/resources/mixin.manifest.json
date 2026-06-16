@@ -1,0 +1,10 @@
+{
+  "package": "com.example.dependent.mixin.manifest",
+  "refmap": "mixins.consumertest.refmap.json",
+  "required": true,
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ManifestMixin"
+  ]
+}
