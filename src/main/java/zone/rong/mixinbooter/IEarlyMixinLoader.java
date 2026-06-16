@@ -10,7 +10,13 @@ import java.util.List;
  *
  * Implement this in your {@link net.minecraftforge.fml.relauncher.IFMLLoadingPlugin}.
  * Return all early mixin configs you want MixinBooter to queue and send to Mixin library.
+ *
+ * @deprecated as of 11.0, the line of "early" and "late" mixin loading no longer is present, use
+ *             {@code MixinConfigs} manifest entry to list your configs or {@code MixinConnector} to denote
+ *             a class implementing {@link org.spongepowered.asm.mixin.connect.IMixinConnector} and call
+ *             {@link org.spongepowered.asm.mixin.Mixins#addConfiguration(String)} (or related methods) there
  */
+@Deprecated
 public interface IEarlyMixinLoader {
 
     /**
