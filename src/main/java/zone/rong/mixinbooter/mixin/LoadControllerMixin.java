@@ -28,6 +28,7 @@ public class LoadControllerMixin {
 
     @Shadow private Loader loader;
 
+    @SuppressWarnings("deprecation")
     @Inject(method = "distributeStateMessage(Lnet/minecraftforge/fml/common/LoaderState;[Ljava/lang/Object;)V", at = @At("HEAD"))
     private void beforeConstructing(LoaderState state, Object[] eventData, CallbackInfo ci) throws Throwable {
         if (state == LoaderState.CONSTRUCTING) {
@@ -47,47 +48,42 @@ public class LoadControllerMixin {
 
             // Instantiate all @MixinLoader annotated classes
             Set<ASMDataTable.ASMData> annotatedData = asmDataTable.getAll(MixinLoader.class.getName());
-
-            if (!annotatedData.isEmpty()) {
-                for (ASMDataTable.ASMData annotated : annotatedData) {
-                    try {
-                        Class<?> clazz = Class.forName(annotated.getClassName());
-                        logger.info("Loading annotated late loader [{}] for its mixins.", clazz.getName());
-                        Object instance = clazz.newInstance();
-                        if (instance instanceof ILateMixinLoader) {
-                            lateLoaders.add((ILateMixinLoader) instance);
-                        }
-                    } catch (Throwable t) {
-                        throw new RuntimeException("Unexpected error.", t);
+            for (ASMDataTable.ASMData annotated : annotatedData) {
+                try {
+                    Class<?> clazz = Class.forName(annotated.getClassName());
+                    logger.info("Loading annotated late loader [{}] for its mixins.", clazz.getName());
+                    Object instance = clazz.newInstance();
+                    if (instance instanceof ILateMixinLoader) {
+                        lateLoaders.add((ILateMixinLoader) instance);
                     }
+                } catch (Throwable t) {
+                    throw new RuntimeException("Unexpected error.", t);
                 }
             }
 
             // Instantiate all ILateMixinLoader implemented classes
-            if (!interfaceData.isEmpty()) {
-                for (ASMDataTable.ASMData itf : interfaceData) {
-                    try {
-                        Class<?> clazz = Class.forName(itf.getClassName().replace('/', '.'));
-                        logger.info("Loading late loader [{}] for its mixins.", clazz.getName());
-                        lateLoaders.add((ILateMixinLoader) clazz.newInstance());
-                    } catch (Throwable t) {
-                        throw new RuntimeException("Unexpected error.", t);
-                    }
+            for (ASMDataTable.ASMData itf : interfaceData) {
+                try {
+                    Class<?> clazz = Class.forName(itf.getClassName().replace('/', '.'));
+                    logger.info("Loading late loader [{}] for its mixins.", clazz.getName());
+                    lateLoaders.add((ILateMixinLoader) clazz.newInstance());
+                } catch (Throwable t) {
+                    throw new RuntimeException("Unexpected error.", t);
                 }
+            }
 
-                for (ILateMixinLoader lateLoader : lateLoaders) {
-                    try {
-                        for (String mixinConfig : lateLoader.getMixinConfigs()) {
-                            Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
-                            if (lateLoader.shouldMixinConfigQueue(context)) {
-                                logger.info("Adding [{}] mixin configuration.", mixinConfig);
-                                Mixins.addConfiguration(mixinConfig);
-                                lateLoader.onMixinConfigQueued(context);
-                            }
+            for (ILateMixinLoader lateLoader : lateLoaders) {
+                try {
+                    for (String mixinConfig : lateLoader.getMixinConfigs()) {
+                        Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
+                        if (lateLoader.shouldMixinConfigQueue(context)) {
+                            logger.info("Adding [{}] mixin configuration.", mixinConfig);
+                            Mixins.addConfiguration(mixinConfig);
+                            lateLoader.onMixinConfigQueued(context);
                         }
-                    } catch (Throwable t) {
-                        logger.error("Failed to execute late loader [{}].", lateLoader.getClass().getName(), t);
                     }
+                } catch (Throwable t) {
+                    logger.error("Failed to execute late loader [{}].", lateLoader.getClass().getName(), t);
                 }
             }
             Proxy.refreshMixins();

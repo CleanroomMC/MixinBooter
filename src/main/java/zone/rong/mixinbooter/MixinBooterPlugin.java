@@ -2,31 +2,30 @@ package zone.rong.mixinbooter;
 
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.relauncher.FMLInjectionData;
+import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.asm.ASM;
+import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.util.ModDiscoverer;
 
+import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.*;
 
 @IFMLLoadingPlugin.Name("MixinBooter")
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
-    public static final ILogger LOGGER = MixinService.getService().getLogger("MixinBooter");
-
-    static String getMinecraftVersion() {
-        return (String) FMLInjectionData.data()[4];
-    }
-
     public MixinBooterPlugin() {
-        this.addTransformationExclusions();
         this.initialize();
     }
 
@@ -46,6 +45,11 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     @Override
+    public String getAccessTransformerClass() {
+        return null;
+    }
+
+    @Override
     public void injectData(Map<String, Object> data) {
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
@@ -54,29 +58,71 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         } else {
             throw new RuntimeException("Blackboard property 'coremodList' must be of type List, early loaders were not able to be gathered");
         }
+        MixinBootstrap.getPlatform().inject();
     }
 
-    @Override
-    public String getAccessTransformerClass() {
-        return null;
-    }
-
-    private void addTransformationExclusions() {
-        Launch.classLoader.addTransformerExclusion("scala.");
-        // Launch.classLoader.addTransformerExclusion("com.llamalad7.mixinextras.");
-    }
-
+    /**
+     * An order of calls are made before we initialize later plugins and mixin (subsystem & mods):
+     * {@link #injectSelfIntoAppClassLoader()} runs first to ensure behaviour is replicated
+     * from when MixinBooter used to use MixinTweaker as a starting point, now we have this plugin class
+     * run first.
+     * {@link #installClassLoaderExclusions()} is for making sure classloading is propagated right.
+     * {@code mixin.bootstrapService} & {@code mixin.service} is set to
+     * {@link zone.rong.mixinbooter.service.MixinServiceBootstrap}
+     * and {@link zone.rong.mixinbooter.service.MixinBooterService} respectively.
+     * Then the mixin subsystem is initialized - {@link MixinBootstrap#init()}
+     */
     private void initialize() {
-        LOGGER.info("Initializing Mixins...");
+        this.injectSelfIntoAppClassLoader();
+        this.installClassLoaderExclusions();
+
+        System.setProperty("mixin.bootstrapService", "zone.rong.mixinbooter.service.MixinServiceBootstrap");
+        System.setProperty("mixin.service", "zone.rong.mixinbooter.service.MixinBooterService");
+
+        Logger logger = Environment.logger();
+
+        logger.info("Initializing Mixins...");
         MixinBootstrap.init();
-
-        Mixins.addConfiguration("mixin.mixinbooter.init.json");
-
-        LOGGER.info("Initializing MixinExtras...");
+        logger.info("Initializing MixinExtras...");
         this.initMixinExtras();
+        logger.info("Gathering present mods...");
+        ModDiscoverer.discover();
+    }
 
-        LOGGER.info("Gathering present mods...");
-        ModDiscoverer.discover(getMinecraftVersion());
+    /**
+     * Force-adds MixinBooter into the parent AppClassLoader, mirroring what Forge does
+     * in {@link net.minecraftforge.fml.relauncher.CoreModManager#discoverCoreMods(File, LaunchClassLoader)}
+     * when dealing with cascading tweak classes (which we used to utilize when adding {@code MixinTweaker}.
+     * No-op (and harmless) in dev, where the jar is already on the AppClassLoader.
+     */
+    private void injectSelfIntoAppClassLoader() {
+        if (Environment.inDev()) {
+            return;
+        }
+        ClassLoader appClassLoader = ClassLoader.getSystemClassLoader();
+        if (!(appClassLoader instanceof URLClassLoader)) {
+            return;
+        }
+        try {
+            URL self = MixinBooterPlugin.class.getProtectionDomain().getCodeSource().getLocation();
+            Method addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+            addURL.setAccessible(true);
+            addURL.invoke(appClassLoader, self);
+        } catch (Throwable t) {
+            Environment.logger().error("Could not inject MixinBooter into the AppClassLoader", t);
+        }
+    }
+
+    private void installClassLoaderExclusions() {
+        Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.launch.");
+        Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.service.");
+        Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.mixin.");
+        Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.logging.");
+        Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.util.");
+        Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.lib.");
+        Launch.classLoader.addClassLoaderExclusion("org.objectweb.asm.");
+        Launch.classLoader.addClassLoaderExclusion("zone.rong.mixinbooter.service.");
+        Launch.classLoader.addClassLoaderExclusion("com.llamalad7.mixinextras.");
     }
 
     private void initMixinExtras() {
@@ -87,6 +133,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
+        ILogger logger = MixinService.getService().getLogger(Tags.MOD_NAME);
         Field fmlPluginWrapper$coreModInstance = null;
         Set<IEarlyMixinLoader> queuedLoaders = new LinkedHashSet<>();
         Context context = new Context(null, ModDiscoverer.getPresentMods()); // For hijackers
@@ -99,36 +146,37 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 Object theMod = fmlPluginWrapper$coreModInstance.get(coremod);
                 if (theMod instanceof IMixinConfigHijacker) {
                     IMixinConfigHijacker interceptor = (IMixinConfigHijacker) theMod;
-                    LOGGER.info("Loading config hijacker {}.", interceptor.getClass().getName());
+                    logger.info("Loading config hijacker {}.", interceptor.getClass().getName());
                     for (String hijacked : interceptor.getHijackedMixinConfigs(context)) {
                         Config.blacklist(hijacked);
-                        LOGGER.info("{} will hijack the mixin config {}", interceptor.getClass().getName(), hijacked);
+                        logger.info("{} will hijack the mixin config {}", interceptor.getClass().getName(), hijacked);
                     }
                 }
                 if (theMod instanceof IEarlyMixinLoader) {
                     queuedLoaders.add((IEarlyMixinLoader) theMod);
                 }
             } catch (Throwable t) {
-                LOGGER.error("Unexpected error", t);
+                logger.error("Unexpected error", t);
             }
         }
         return queuedLoaders;
     }
 
     private void loadEarlyLoaders(Collection<IEarlyMixinLoader> queuedLoaders) {
+        ILogger logger = MixinService.getService().getLogger(Tags.MOD_NAME);
         for (IEarlyMixinLoader queuedLoader : queuedLoaders) {
-            LOGGER.info("Loading early loader {} for its mixins.", queuedLoader.getClass().getName());
+            logger.info("Loading early loader {} for its mixins.", queuedLoader.getClass().getName());
             try {
                 for (String mixinConfig : queuedLoader.getMixinConfigs()) {
                     Context context = new Context(mixinConfig, ModDiscoverer.getPresentMods());
                     if (queuedLoader.shouldMixinConfigQueue(context)) {
-                        LOGGER.info("Adding [{}] mixin configuration.", mixinConfig);
+                        logger.info("Adding [{}] mixin configuration.", mixinConfig);
                         Mixins.addConfiguration(mixinConfig);
                         queuedLoader.onMixinConfigQueued(context);
                     }
                 }
             } catch (Throwable t) {
-                LOGGER.error("Failed to execute early loader [{}].", queuedLoader.getClass().getName(), t);
+                logger.error("Failed to execute early loader [{}].", queuedLoader.getClass().getName(), t);
             }
         }
     }

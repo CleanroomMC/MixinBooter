@@ -1,10 +1,10 @@
-package zone.rong.mixinbooter.service;
+package zone.rong.mixinbooter.util;
 
 import org.apache.logging.log4j.LogManager;
 import org.spongepowered.asm.logging.Level;
 import org.spongepowered.asm.logging.LoggerAdapterAbstract;
 
-class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
+public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
 
     private static final org.apache.logging.log4j.Level[] LEVELS = {
         org.apache.logging.log4j.Level.FATAL,
@@ -17,7 +17,7 @@ class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
 
     private final org.apache.logging.log4j.Logger logger;
 
-    LoggerAdapterLog4j2(String name) {
+    public LoggerAdapterLog4j2(String name) {
         super(name);
         this.logger = LogManager.getLogger(name);
     }

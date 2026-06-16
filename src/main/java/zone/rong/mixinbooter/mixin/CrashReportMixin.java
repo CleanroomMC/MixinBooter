@@ -3,14 +3,14 @@ package zone.rong.mixinbooter.mixin;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.crash.CrashReport;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
-import zone.rong.mixinbooter.MixinBooterPlugin;
+import org.spongepowered.asm.service.MixinService;
+import zone.rong.mixinbooter.Tags;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -55,7 +55,7 @@ public class CrashReportMixin {
             if (classes.isEmpty()) {
                 cir.setReturnValue(cir.getReturnValue() + "\nNo Mixin Metadata is found in the Stacktrace.\n");
             } else {
-                StringBuilder mixinMetadataBuilder = new StringBuilder("\n(MixinBooter) Mixins in Stacktrace:");
+                StringBuilder mixinMetadataBuilder = new StringBuilder("\nMixins in Stacktrace:");
                 boolean addedMetadata = false;
                 for (Map.Entry<String, ClassInfo> entry : classes.entrySet()) {
                     addedMetadata |= mixinbooter$findAndAddMixinMetadata(mixinMetadataBuilder, entry.getKey(), entry.getValue());
@@ -67,14 +67,14 @@ public class CrashReportMixin {
                 }
             }
         } catch (Throwable t) {
-            MixinBooterPlugin.LOGGER.fatal("Unable to gather mixin metadata from the stacktrace", t);
+            MixinService.getService().getLogger(Tags.MOD_NAME).fatal("Unable to gather mixin metadata from the stacktrace", t);
             cir.setReturnValue(cir.getReturnValue() + "\nFailed to find Mixin Metadata in Stacktrace due to exception: " + t);
         }
     }
 
     @Unique
     private boolean mixinbooter$findAndAddMixinMetadata(StringBuilder mixinMetadataBuilder, String className, ClassInfo classInfo) {
-        Set<IMixinInfo> mixinInfos = classInfo.getApplicableMixins();
+        Set<IMixinInfo> mixinInfos = classInfo.getMixins();
         if (!mixinInfos.isEmpty()) {
             mixinMetadataBuilder.append("\n\t");
             mixinMetadataBuilder.append(className);
@@ -85,7 +85,7 @@ public class CrashReportMixin {
                 mixinMetadataBuilder.append(" (");
                 mixinMetadataBuilder.append(mixinInfo.getConfig());
                 mixinMetadataBuilder.append(") [");
-                mixinMetadataBuilder.append(ModUtil.owner(mixinInfo.getConfig()));
+                mixinMetadataBuilder.append(mixinInfo.getConfig().getCleanSourceId());
                 mixinMetadataBuilder.append("]");
             }
             return true;

@@ -3,6 +3,7 @@ package zone.rong.mixinbooter;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import zone.rong.mixinbooter.util.Environment;
 
 import java.util.List;
 import java.util.Set;
@@ -19,10 +20,8 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        String version = MixinBooterPlugin.getMinecraftVersion();
         if (mixinClassName.contains("CrashReport")) {
-            // 1.8.x
-            return !version.startsWith("1.8.");
+            return !Environment.minecraftVersion().startsWith("1.8.");
         }
         return true;
     }
@@ -40,4 +39,5 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) { }
+
 }

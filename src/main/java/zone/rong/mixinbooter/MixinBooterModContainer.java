@@ -8,6 +8,8 @@ import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
 import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
 import net.minecraftforge.fml.common.versioning.VersionRange;
+import org.spongepowered.asm.service.MixinService;
+import zone.rong.mixinbooter.util.Environment;
 
 import java.util.Collections;
 import java.util.Set;
@@ -16,7 +18,7 @@ public class MixinBooterModContainer extends DummyModContainer {
 
     public MixinBooterModContainer() {
         super(new ModMetadata());
-        MixinBooterPlugin.LOGGER.info("Initializing MixinBooter's Mod Container.");
+        MixinService.getService().getLogger(Tags.MOD_NAME).info("Initializing Mod Container.");
         ModMetadata meta = this.getMetadata();
         meta.modId = Tags.MOD_ID;
         meta.name = Tags.MOD_NAME;
@@ -36,7 +38,7 @@ public class MixinBooterModContainer extends DummyModContainer {
     @Override
     public Set<ArtifactVersion> getRequirements() {
         try {
-            if ("1.12.2".equals(MixinBooterPlugin.getMinecraftVersion())) {
+            if ("1.12.2".equals(Environment.minecraftVersion())) {
                 try {
                     return Collections.singleton(new SpongeForgeArtifactVersion());
                 } catch (InvalidVersionSpecificationException e) {
