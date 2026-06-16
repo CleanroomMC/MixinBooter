@@ -174,7 +174,7 @@ tasks.register('runTestClient', RunMinecraftTask, Distribution.CLIENT).configure
     description 'Runs the dev client with the testmod as a real mod jar in testmod/run/mods'
 
     def runClientProvider = tasks.named('runClient', RunMinecraftTask)
-    classpath = files(runClientProvider.map { it.classpath })
+    classpath = files({ runClientProvider.get().classpath })
     mainClass.set(runClientProvider.flatMap { it.mainClass })
     tweakClasses.set(runClientProvider.flatMap { it.tweakClasses })
     username.set(runClientProvider.flatMap { it.username })
