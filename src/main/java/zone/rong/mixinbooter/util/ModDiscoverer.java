@@ -8,6 +8,7 @@ import com.google.gson.JsonElement;
 import net.minecraft.launchwrapper.Launch;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.service.MixinService;
+import org.spongepowered.asm.util.Constants.ManifestAttributes;
 import zone.rong.mixinbooter.Tags;
 
 import java.io.File;
@@ -19,9 +20,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 /**
@@ -34,6 +38,7 @@ public final class ModDiscoverer {
     private static final ILogger LOGGER = MixinService.getService().getLogger(Tags.MOD_NAME);
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = HashMultimap.create();
+    private static final Set<File> manifestMixinJars = new HashSet<>();
 
     private static boolean discovered = false;
 
@@ -99,9 +104,33 @@ public final class ModDiscoverer {
                 } catch (URISyntaxException ignored) { }
             }
         }
+        pullManifestMixinJars();
 
         LOGGER.info("Finished gathering {} mods...", modIdToFiles.keySet().size());
         LOGGER.debug("Mods gathered: {}", String.join(", ", modIdToFiles.keySet()));
+    }
+
+    private static void pullManifestMixinJars() {
+        if (manifestMixinJars.isEmpty()) {
+            return;
+        }
+        Set<File> alreadyOnClassLoader = new HashSet<>();
+        for (URL url : Launch.classLoader.getURLs()) {
+            try {
+                alreadyOnClassLoader.add(new File(url.toURI()));
+            } catch (URISyntaxException | IllegalArgumentException ignored) { }
+        }
+        for (File jar : manifestMixinJars) {
+            if (alreadyOnClassLoader.contains(jar)) {
+                continue;
+            }
+            try {
+                Launch.classLoader.addURL(jar.toURI().toURL());
+                LOGGER.info("Added {} to the classloader to process its mixin manifest attributes.", jar.getName());
+            } catch (Exception e) {
+                LOGGER.error("Failed to add {} to the classloader to process its mixin manifest attributes.", jar.getName(), e);
+            }
+        }
     }
 
     private static void scanDirectory(Gson gson, File dir) {
@@ -118,11 +147,18 @@ public final class ModDiscoverer {
     }
 
     private static void scanJar(Gson gson, File jar) {
-        try (JarFile jf = new JarFile(jar)) {
-            ZipEntry entry = jf.getEntry("mcmod.info");
+        try (JarFile jarFile = new JarFile(jar)) {
+            ZipEntry entry = jarFile.getEntry("mcmod.info");
             if (entry != null) {
-                for (String modId : parseMcmodInfo(gson, jf.getInputStream(entry))) {
+                for (String modId : parseMcmodInfo(gson, jarFile.getInputStream(entry))) {
                     recordMod(modId, jar);
+                }
+            }
+            Manifest manifest = jarFile.getManifest();
+            if (manifest != null) {
+                Attributes attributes = manifest.getMainAttributes();
+                if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
+                    manifestMixinJars.add(jar);
                 }
             }
         } catch (IOException e) {

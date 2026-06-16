@@ -1,0 +1,7 @@
+[{
+	"modid": "mixinbooter_test",
+	"name": "MixinBooter Test",
+	"version": "1.0",
+	"mcversion": "1.12.2",
+	"description": "In-workspace test mod for verifying MixinBooter's late mixin loading pipelines."
+}]

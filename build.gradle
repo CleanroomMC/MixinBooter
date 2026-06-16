@@ -1,3 +1,5 @@
+import com.gtnewhorizons.retrofuturagradle.minecraft.RunMinecraftTask
+import com.gtnewhorizons.retrofuturagradle.util.Distribution
 import org.jetbrains.gradle.ext.Gradle
 
 plugins {
@@ -56,8 +58,23 @@ tasks.injectTags.configure {
 configurations {
     mod
     maven
+    testmodMod // real mod jars dropped into testmod/run/mods for runTestClient
     implementation.extendsFrom mod
 }
+
+sourceSets {
+    testmod {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    puremod {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+// testmodMod jars are both compiled against and shipped as real mods alongside the testmod jar
+configurations.testmodImplementation.extendsFrom configurations.testmodMod
 
 repositories {
     maven {
@@ -95,6 +112,86 @@ dependencies {
 
     annotationProcessor cleanmix
     annotationProcessor mixinextras
+
+    testmodAnnotationProcessor cleanmix
+    testmodAnnotationProcessor mixinextras
+
+    puremodAnnotationProcessor cleanmix
+    puremodAnnotationProcessor mixinextras
+
+    testmodMod ('mezz:jei:4.31.0') {
+        transitive = false
+    }
+}
+
+/*
+    Packages the testmod into a real mod jar, mirroring how a normal mod would consume MixinBooter.
+    FMLCorePlugin makes TestCoreMod a discovered coremod/IEarlyMixinLoader when the jar sits in the mods/ folder.
+    FMLCorePluginContainsFMLMod allows Forge to load the mod via the @Mod annotation.
+    MixinConfigs/MixinConnector manifest attributes are tested here as well, as the previous dev cases cannot.
+ */
+tasks.register('testmodJar', Jar) {
+    group 'build'
+    dependsOn 'testmodClasses'
+    archiveBaseName.set('mixinbooter-testmod')
+    from sourceSets.testmod.output
+    manifest {
+        attributes(
+                'FMLCorePlugin': 'zone.rong.mixinbooter.test.TestCoreMod',
+                'FMLCorePluginContainsFMLMod': 'true',
+                'MixinConfigs': 'mixin.manifest_test.json',
+                'MixinConnector': 'zone.rong.mixinbooter.test.TestMixinConnector'
+        )
+    }
+}
+
+/*
+    Packages a real and plain mod jar. It is a plain jar with @Mod and no coremods.
+    Normally Forge only adds these jars to the classloader before FMLConstructionEvent, which is too late
+    for Mixin's PREINIT stage.
+    ModDiscoverer pulls these jars into the classloader during discovery by inspecting their manifest attributes.
+ */
+tasks.register('puremodJar', Jar) {
+    group 'build'
+    dependsOn 'puremodClasses'
+    archiveBaseName.set('mixinbooter-puremod')
+    from sourceSets.puremod.output
+    manifest {
+        attributes(
+                'MixinConfigs': 'mixin.puremod_test.json'
+        )
+    }
+}
+
+/*
+    Runs the dev client with the testmod packaged as a real mod jar in testmod/run/mods.
+    Testing all MixinBooter pipelines. Uses HEI as a real mod to test late mixin loading.
+ */
+tasks.register('runTestClient', RunMinecraftTask, Distribution.CLIENT).configure {
+    setup(project)
+    dependsOn 'testmodJar', 'puremodJar'
+    group 'verification'
+    description 'Runs the dev client with the testmod as a real mod jar in testmod/run/mods'
+
+    def runClientProvider = tasks.named('runClient', RunMinecraftTask)
+    classpath = files(runClientProvider.map { it.classpath })
+    mainClass.set(runClientProvider.flatMap { it.mainClass })
+    tweakClasses.set(runClientProvider.flatMap { it.tweakClasses })
+    username.set(runClientProvider.flatMap { it.username })
+    userUUID.set(runClientProvider.flatMap { it.userUUID })
+    setWorkingDir(file('testmod/run'))
+
+    doFirst {
+        def modsDir = file('testmod/run/mods')
+        delete fileTree(modsDir).matching { include '*.jar' }
+        modsDir.mkdirs()
+        copy {
+            from tasks.named('testmodJar', Jar)
+            from tasks.named('puremodJar', Jar)
+            from configurations.testmodMod
+            into modsDir
+        }
+    }
 }
 
 processResources {
@@ -116,9 +213,7 @@ processResources {
 }
 
 tasks.register('properJar', Jar) { jar ->
-
     group 'build'
-
     // Gather all service files, append them under the same file if possible
     doFirst {
         def serviceDir = file("$buildDir/tmp/services_cleanup/META-INF/services")

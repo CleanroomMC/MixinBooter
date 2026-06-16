@@ -1,0 +1,7 @@
+[{
+	"modid": "puremod_test",
+	"name": "MixinBooter Pure Mod Test",
+	"version": "1.0",
+	"mcversion": "1.12.2",
+	"description": "In-workspace test mod proving a pure @Mod jar (no FMLCorePlugin) can load manifest-declared mixins against early targets."
+}]

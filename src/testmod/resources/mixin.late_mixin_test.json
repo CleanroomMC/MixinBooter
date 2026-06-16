@@ -1,0 +1,9 @@
+{
+  "package": "zone.rong.mixinbooter.test.mixin.late",
+  "required": true,
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "LateTestMixin"
+  ]
+}
