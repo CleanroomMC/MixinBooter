@@ -14,7 +14,16 @@ import java.util.*;
 
 public class TransformerProvider implements ITransformerProvider {
 
-    private final Set<String> excludeTransformers = new HashSet<>();
+    /**
+     * Known re-entrant transformers that must never process meta class data.
+     * Other re-entrants will be detected automatically.
+     */
+    private final Set<String> excludeTransformers = new HashSet<>(Arrays.asList(
+            "net.minecraftforge.fml.common.asm.transformers.EventSubscriptionTransformer",
+            "cpw.mods.fml.common.asm.transformers.EventSubscriptionTransformer",
+            "net.minecraftforge.fml.common.asm.transformers.TerminalTransformer",
+            "cpw.mods.fml.common.asm.transformers.TerminalTransformer"
+    ));
 
     private List<ILegacyClassTransformer> delegatedTransformers;
 
@@ -24,9 +33,14 @@ public class TransformerProvider implements ITransformerProvider {
 
     @Override
     public Collection<ITransformer> getTransformers() {
-        List<ITransformer> result = new ArrayList<>();
-        for (IClassTransformer transformer : Launch.classLoader.getTransformers()) {
-            result.add(new LaunchWrapperTransformerHandle(transformer));
+        List<IClassTransformer> transformers = Launch.classLoader.getTransformers();
+        List<ITransformer> result = new ArrayList<>(transformers.size());
+        for (IClassTransformer transformer : transformers) {
+            if (transformer instanceof ITransformer) {
+                result.add((ITransformer) transformer);
+            } else {
+                result.add(new LaunchWrapperTransformerHandle(transformer));
+            }
         }
         return result;
     }

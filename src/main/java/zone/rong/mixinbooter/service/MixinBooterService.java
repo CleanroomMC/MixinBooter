@@ -29,8 +29,9 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
     private static final String STATE_TWEAKER = MixinServiceAbstract.MIXIN_PACKAGE + "EnvironmentStateTweaker";
 
     private final ClassProvider classProvider = new ClassProvider();
-    private final BytecodeProvider bytecodeProvider = new BytecodeProvider();
     private final TransformerProvider transformerProvider = new TransformerProvider();
+    private final LaunchClassLoaderUtil classLoaderUtil = new LaunchClassLoaderUtil(Launch.classLoader);
+    private final BytecodeProvider bytecodeProvider = new BytecodeProvider(transformerProvider, this.getReEntranceLock(), classLoaderUtil);
 
     public MixinBooterService() { }
 
@@ -58,18 +59,27 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
     }
 
     @Override
+    public void offer(IMixinInternal internal) {
+        super.offer(internal);
+        // MixinProcessor#refresh offers a "Refresh" internal when configs are (re-)selected late
+        // Rebuild the delegated transformer list so any transformers registered since are picked up
+        if ("Refresh".equals(internal.toString())) {
+            this.transformerProvider.refreshDelegatedTransformers();
+        }
+    }
+
+    @Override
     public void beginPhase() {
         Launch.classLoader.registerTransformer(PROXY);
-        this.transformerProvider.refreshDelegatedTransformers();
+        // The mixin transformer must never be in the delegated chain that BytecodeProvider applies
+        // when fetching a target class's bytecode. Otherwise, resolving a mixin target re-enters the
+        // mixin pipeline and recurses until StackOverflow.
+        this.transformerProvider.addTransformerExclusion(PROXY);
     }
 
     @Override
     public void init() {
         GlobalProperties.<List<String>>get(Blackboard.TWEAK_CLASSES_KEY).add(STATE_TWEAKER);
-        // Production: the MixinConfigs manifest attribute on our jar is consumed via the primary
-        // container (see getPrimaryContainer + MixinPlatformAgentDefault). The exploded dev classpath
-        // cannot exercise manifest scanning (code source is the classes dir, no manifest), so register
-        // explicitly there.
         if (Environment.inDev()) {
             Mixins.addConfiguration("mixin.mixinbooter.init.json");
         }
@@ -92,7 +102,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public IClassTracker getClassTracker() {
-        return null;
+        return classLoaderUtil;
     }
 
     @Override

@@ -9,7 +9,7 @@ public class ClassProvider implements IClassProvider {
 
     @Override
     public URL[] getClassPath() {
-        return Launch.classLoader.getURLs();
+        return Launch.classLoader.getSources().toArray(new URL[0]);
     }
 
     @Override
