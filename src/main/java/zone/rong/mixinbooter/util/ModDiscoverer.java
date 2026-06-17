@@ -18,6 +18,7 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -174,7 +175,7 @@ public final class ModDiscoverer {
     private static List<String> parseMcmodInfo(Gson gson, InputStream stream) {
         try {
             List<String> ids = new ArrayList<>();
-            JsonElement root = gson.fromJson(new InputStreamReader(stream), JsonElement.class);
+            JsonElement root = gson.fromJson(new InputStreamReader(stream, StandardCharsets.UTF_8), JsonElement.class);
             if (root.isJsonArray()) {
                 for (JsonElement element : root.getAsJsonArray()) {
                     if (element.isJsonObject()) {
