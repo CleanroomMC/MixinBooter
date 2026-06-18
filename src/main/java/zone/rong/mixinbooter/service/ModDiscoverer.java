@@ -1,15 +1,21 @@
-package zone.rong.mixinbooter.util;
+package zone.rong.mixinbooter.service;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import net.minecraft.launchwrapper.Launch;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.Constants.ManifestAttributes;
 import zone.rong.mixinbooter.Tags;
+import zone.rong.mixinbooter.util.Environment;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,44 +27,85 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 /**
- * Discovers all mods present in the game directory at coremod init time,
- * independently of FML's Loader which is not available early.
+ * Discovers all mods present in the game directory at coremod init time
+ * independently of {@link net.minecraftforge.fml.common.Loader} which is not available early.
  * Builds a bidirectional mod-id and file mapping used for dependency checking.
  */
 public final class ModDiscoverer {
 
     private static final ILogger LOGGER = MixinService.getService().getLogger(Tags.MOD_NAME);
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
-    private static final SetMultimap<File, String> fileToModIds = HashMultimap.create();
+    private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
     private static final Set<File> manifestMixinJars = new HashSet<>();
 
     private static boolean discovered = false;
 
     private ModDiscoverer() { }
 
+    /**
+     * Returns whether any discovered jar declares the given mod id.
+     *
+     * @param modId the mod id to test
+     * @return {@code true} if at least one scanned jar declares the id
+     */
     public static boolean isModPresent(String modId) {
         return modIdToFiles.containsKey(modId);
     }
 
+    /**
+     * Returns the ids of every mod discovered across all scanned jars.
+     *
+     * @return an unmodifiable view of all present mod ids
+     */
     public static Set<String> getPresentMods() {
-        return modIdToFiles.keySet();
+        return Collections.unmodifiableSet(modIdToFiles.keySet());
     }
 
+    /**
+     * Returns the jars that declare the given mod id.
+     * A single mod id may be shipped by more than one jar (e.g. duplicate installs), hence a set.
+     *
+     * @param modId the mod id to resolve
+     * @return the jars declaring that mod id (empty if none)
+     */
     public static Set<File> getModSources(String modId) {
         return Collections.unmodifiableSet(modIdToFiles.get(modId));
     }
 
+    /**
+     * Returns the id of the mod owning the given jar.
+     * Use {@link #getSourceMods(File)} instead if you need every declared id.
+     *
+     * @param source the jar to resolve
+     * @return the owning mod's id (first declared via {@code mcmod.info}, else its {@code @Mod} annotation),
+     *         or {@code null} if the jar declares no mod
+     */
+    public static String getSourceMod(File source) {
+        Set<String> ids = getSourceMods(source);
+        return ids.isEmpty() ? null : ids.iterator().next();
+    }
+
+    /**
+     * Returns the ids of the mod(s) owning the given jar, resolved during {@link #discover()} from its
+     * {@code mcmod.info} or, when that declares none, its {@code @Mod} annotation. A jar may declare more
+     * than one mod (via {@code mcmod.info}'s modList), hence the set.
+     *
+     * @param source the jar to inspect
+     * @return the mod ids the jar declares (empty if none)
+     */
     public static Set<String> getSourceMods(File source) {
-        return Collections.unmodifiableSet(fileToModIds.get(source));
+        return Collections.unmodifiableSet(fileToModIds.get(source.getAbsoluteFile()));
     }
 
     /**
@@ -105,6 +152,7 @@ public final class ModDiscoverer {
                 } catch (URISyntaxException ignored) { }
             }
         }
+
         pullManifestMixinJars();
 
         LOGGER.info("Finished gathering {} mods...", modIdToFiles.keySet().size());
@@ -150,8 +198,14 @@ public final class ModDiscoverer {
     private static void scanJar(Gson gson, File jar) {
         try (JarFile jarFile = new JarFile(jar)) {
             ZipEntry entry = jarFile.getEntry("mcmod.info");
-            if (entry != null) {
-                for (String modId : parseMcmodInfo(gson, jarFile.getInputStream(entry))) {
+            List<String> modIds = entry != null ? parseMcmodInfo(gson, jarFile.getInputStream(entry)) : Collections.emptyList();
+            if (!modIds.isEmpty()) {
+                for (String modId : modIds) {
+                    recordMod(modId, jar);
+                }
+            } else {
+                String modId = scanModAnnotation(jarFile);
+                if (modId != null) {
                     recordMod(modId, jar);
                 }
             }
@@ -168,8 +222,9 @@ public final class ModDiscoverer {
     }
 
     private static void recordMod(String modId, File source) {
-        modIdToFiles.put(modId, source);
-        fileToModIds.put(source, modId);
+        File abs = source.getAbsoluteFile();
+        modIdToFiles.put(modId, abs);
+        fileToModIds.put(abs, modId);
     }
 
     private static List<String> parseMcmodInfo(Gson gson, InputStream stream) {
@@ -194,6 +249,75 @@ public final class ModDiscoverer {
             LOGGER.error("Failed to parse mcmod.info", t);
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * Scans the jar's classes for the first {@code @Mod} annotation and returns its {@code modid}
+     * or {@code null} if none declares one. This is the fallback for mods that declare their id via
+     * the annotation rather than {@code mcmod.info}.
+     * Reads bytecode only and unreadable entries are skipped, the walk stops at the first match.
+     */
+    private static String scanModAnnotation(JarFile jar) {
+        Enumeration<JarEntry> entries = jar.entries();
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
+                continue;
+            }
+            try (InputStream in = jar.getInputStream(entry)) {
+                ModAnnotationVisitor visitor = new ModAnnotationVisitor();
+                try {
+                    new ClassReader(in).accept(visitor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                } catch (ExitVisitException ignored) { }
+                if (visitor.modId != null) {
+                    return visitor.modId;
+                }
+            } catch (Exception ignored) { }
+        }
+        return null;
+    }
+
+    /**
+     * Reads {@code modid} from a class's {@code @Mod} annotation. An annotation element is always a
+     * compile-time constant, so the value is read straight from the bytecode without loading the class.
+     */
+    private static class ModAnnotationVisitor extends ClassVisitor {
+
+        private static final String MOD_ANNOTATION = "Lnet/minecraftforge/fml/common/Mod;";
+
+        private String modId;
+
+        private ModAnnotationVisitor() {
+            super(Opcodes.ASM5);
+        }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            if (!MOD_ANNOTATION.equals(descriptor)) {
+                return null;
+            }
+            return new AnnotationVisitor(Opcodes.ASM5) {
+                @Override
+                public void visit(String name, Object value) {
+                    if ("modid".equals(name) && value instanceof String) {
+                        ModAnnotationVisitor.this.modId = (String) value;
+                        throw new ExitVisitException();
+                    }
+                }
+            };
+        }
+    }
+
+    /**
+     * Thrown to abort {@link ClassReader#accept} the moment a {@code modid} is read
+     * so the rest of the class is not visited. Carries no stacktrace, for control flow and not a real exception.
+     */
+    private static class ExitVisitException extends RuntimeException {
+
+        private ExitVisitException() {
+            super(null, null, false, false);
+        }
+
     }
 
 }

@@ -15,6 +15,7 @@ import zone.rong.mixinbooter.service.platform.MixinPlatformAgent;
 import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.util.LoggerAdapterLog4j2;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -150,8 +151,24 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
         return Launch.classLoader.findResource(name);
     }
 
+    /**
+     * A config's source id is used as its canonical mod (owner) id. {@code getCleanSourceId()} therefore will mirror
+     * the mod id. Resolve the container jar to its mod id via ModDiscoverer.
+     * Fallback to the jar file name for libraries/dev classpath dirs that have no {@code mcmod.info}.
+     */
     @Override
     public String getSourceId(URI source) {
+        if (source == null) {
+            return null;
+        }
+        if ("file".equals(source.getScheme())) {
+            try {
+                String modId = ModDiscoverer.getSourceMod(new File(source));
+                if (modId != null) {
+                    return modId;
+                }
+            } catch (IllegalArgumentException ignored) { }
+        }
         String path = source.getPath();
         if (path == null) {
             return null;

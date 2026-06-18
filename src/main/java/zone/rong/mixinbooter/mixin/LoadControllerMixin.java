@@ -15,7 +15,7 @@ import zone.rong.mixinbooter.Context;
 import zone.rong.mixinbooter.ILateMixinLoader;
 import zone.rong.mixinbooter.MixinLoader;
 import zone.rong.mixinbooter.Tags;
-import zone.rong.mixinbooter.util.ModDiscoverer;
+import zone.rong.mixinbooter.service.ModDiscoverer;
 
 import java.util.HashSet;
 import java.util.Set;

@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.util.Environment;
-import zone.rong.mixinbooter.util.ModDiscoverer;
+import zone.rong.mixinbooter.service.ModDiscoverer;
 
 import java.io.File;
 import java.lang.reflect.Field;
