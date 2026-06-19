@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.Mixins;
@@ -79,10 +78,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         System.setProperty("mixin.bootstrapService", "zone.rong.mixinbooter.service.MixinServiceBootstrap");
         System.setProperty("mixin.service", "zone.rong.mixinbooter.service.MixinBooterService");
 
-        Logger logger = Environment.logger();
-
-        logger.info("Initializing Mixins...");
         MixinBootstrap.init();
+
+        ILogger logger = MixinService.getService().getLogger(Tags.MOD_NAME);
         logger.info("Initializing MixinExtras...");
         this.initMixinExtras();
         logger.info("Gathering present mods...");
@@ -109,7 +107,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
             addURL.setAccessible(true);
             addURL.invoke(appClassLoader, self);
         } catch (Throwable t) {
-            Environment.logger().error("Could not inject MixinBooter into the AppClassLoader", t);
+            throw new RuntimeException("Unable to add MixinBooter into the parent ClassLoader", t);
         }
     }
 

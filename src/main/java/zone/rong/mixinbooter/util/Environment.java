@@ -3,9 +3,6 @@ package zone.rong.mixinbooter.util;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.common.ForgeVersion;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import zone.rong.mixinbooter.Tags;
 
 import java.util.List;
 
@@ -13,7 +10,6 @@ public class Environment {
 
     private static final boolean inDev = System.getProperty("sun.java.command", "").contains("GradleStart");
     private static final String side, mcVersion;
-    private static final Logger logger;
 
     /**
      * @return current Minecraft version
@@ -36,10 +32,6 @@ public class Environment {
         return side;
     }
 
-    public static Logger logger() {
-        return logger;
-    }
-
     static {
         // List<ITweaker> tweaks = GlobalProperties.get(Blackboard.TWEAKS_KEY);
         List<ITweaker> tweaks = (List<ITweaker>) Launch.blackboard.get("Tweaks");
@@ -58,8 +50,6 @@ public class Environment {
             default:
                 mcVersion = "1.12.2";
         }
-
-        logger = LogManager.getLogger(Tags.MOD_NAME);
     }
 
 }
