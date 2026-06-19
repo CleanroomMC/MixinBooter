@@ -8,6 +8,7 @@ plugins {
     id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.7'
     id 'com.gtnewhorizons.retrofuturagradle' version '2.0.2'
+    id 'com.gradleup.shadow' version '9.4.2'
 }
 
 def coremod_plugin_name = 'zone.rong.mixinbooter.MixinBooterPlugin'
@@ -23,7 +24,6 @@ java {
         languageVersion.set(JavaLanguageVersion.of(8))
         vendor.set(org.gradle.jvm.toolchain.JvmVendorSpec.AZUL)
     }
-    // Generate sources and javadocs jars when building and publishing
     withSourcesJar()
     withJavadocJar()
 }
@@ -212,47 +212,16 @@ processResources {
     }
 }
 
-tasks.register('properJar', Jar) { jar ->
+tasks.named('jar', Jar) {
+    archiveClassifier.set('dev')
+}
+
+tasks.named('shadowJar') {
     group 'build'
-    // Gather all service files, append them under the same file if possible
-    doFirst {
-        def serviceDir = file("$buildDir/tmp/services_cleanup/META-INF/services")
-        serviceDir.deleteDir()
-        serviceDir.mkdirs()
-
-        configurations.mod.each { file ->
-            zipTree(file).matching {
-                include 'META-INF/services/*'
-            }.each { serviceFile ->
-                new File(serviceDir, serviceFile.name) << serviceFile.getText("UTF-8") << '\n'
-            }
-        }
-    }
-
-    // Set output jar name to have an exclamation mark at the front
-    jar.archiveBaseName.set("!${project.base.archivesName.get()}")
-
-    // Gather all main source/resource files, excluding any META-INF and replaceable files
-    from sourceSets.main.output
-
-    // Gather embed dependencies, while excluding any replaceable files and META-INF services
-    from(provider {
-        configurations.mod.collect {
-            if (it.isDirectory()) {
-                return it
-            } else {
-                zipTree(it).matching {
-                    exclude '**/LICENSE*', 'META-INF/**'
-                }
-            }
-        }
-    })
-
-    // Gather earlier bundled service files
-    from fileTree(file("$buildDir/tmp/services_cleanup/")).matching {
-        include 'META-INF/services/*'
-    }
-
+    archiveClassifier.set('')
+    configurations = [project.configurations.mod]
+    mergeServiceFiles()
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/MANIFEST.MF', 'module-info.class', '**/LICENSE*'
     manifest {
         def attribute_map = [:]
         attribute_map['FMLCorePlugin'] = coremod_plugin_name
@@ -268,34 +237,41 @@ tasks.register('properJar', Jar) { jar ->
     }
 }
 
-tasks.register('properSourcesJar', Jar) { jar ->
+tasks.named('reobfJar').configure {
+    inputJar.set(tasks.named('shadowJar').flatMap { it.archiveFile })
+    archiveBaseName.set("!${project.base.archivesName.get()}")
+}
 
-    group 'build'
-
-    // Sources classifier
-    jar.archiveClassifier.set('sources')
-
-    // Gather all of our own source files
-    from sourceSets.main.allSource
-
-    // Gather sources of embed dependencies
+tasks.named('sourcesJar', Jar).configure {
     def componentIds = configurations.mod.incoming.resolutionResult.allDependencies.collect { it.selected.id }
     ArtifactResolutionResult result = dependencies.createArtifactResolutionQuery()
             .forComponents(componentIds)
             .withArtifacts(JvmLibrary, SourcesArtifact)
             .execute()
     result.resolvedComponents.each { ComponentArtifactsResult component ->
-        Set<ArtifactResult> sources = component.getArtifacts(SourcesArtifact)
-        sources.each { ArtifactResult ar ->
+        component.getArtifacts(SourcesArtifact).each { ArtifactResult ar ->
             if (ar instanceof ResolvedArtifactResult) {
-                fileTree(ar.file).each { sourceFiles ->
-                    from zipTree(sourceFiles).matching {
-                        include '**/*.java'
-                    }
-                }
+                from zipTree(ar.file).matching { include '**/*.java' }
             }
         }
     }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('javadocJar', Jar).configure {
+    def componentIds = configurations.mod.incoming.resolutionResult.allDependencies.collect { it.selected.id }
+    ArtifactResolutionResult result = dependencies.createArtifactResolutionQuery()
+            .forComponents(componentIds)
+            .withArtifacts(JvmLibrary, JavadocArtifact)
+            .execute()
+    result.resolvedComponents.each { ComponentArtifactsResult component ->
+        component.getArtifacts(JavadocArtifact).each { ArtifactResult ar ->
+            if (ar instanceof ResolvedArtifactResult) {
+                from zipTree(ar.file)
+            }
+        }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 idea {
@@ -335,12 +311,23 @@ tasks.named('processIdeaSettings').configure {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            // from components.java
             groupId project.group
             artifactId project.base.archivesName.get()
-            artifact tasks.named('properJar')
-            artifact tasks.named('properSourcesJar')
+            artifact tasks.named('shadowJar')
+            artifact tasks.named('sourcesJar')
             artifact tasks.named('javadocJar')
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+                configurations.maven.allDependencies.each { dependency ->
+                    if (dependency.group != null && dependency.name != null && dependency.version != null) {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', dependency.group)
+                        dependencyNode.appendNode('artifactId', dependency.name)
+                        dependencyNode.appendNode('version', dependency.version)
+                        dependencyNode.appendNode('scope', 'compile')
+                    }
+                }
+            }
         }
     }
     repositories {
