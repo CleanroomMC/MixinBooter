@@ -68,6 +68,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
      * {@link zone.rong.mixinbooter.service.MixinServiceBootstrap}
      * and {@link zone.rong.mixinbooter.service.MixinBooterService} respectively.
      * Then the mixin subsystem is initialized - {@link MixinBootstrap#init()}
+     * Config is read straight afterwards.
      */
     private void initialize() {
         this.injectSelfIntoAppClassLoader();
@@ -78,6 +79,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
         MixinBootstrap.init();
         ModDiscoverer.discover();
+        MixinBooterConfig.load();
     }
 
     /**
