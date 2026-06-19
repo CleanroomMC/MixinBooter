@@ -247,6 +247,8 @@ public final class ModDiscoverer {
             return ids;
         } catch (Throwable t) {
             LOGGER.error("Failed to parse mcmod.info", t);
+        } finally {
+            IOUtils.closeQuietly(stream);
         }
         return Collections.emptyList();
     }
