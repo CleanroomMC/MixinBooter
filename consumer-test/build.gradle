@@ -130,15 +130,10 @@ dependencies {
     }
     if (propertyBool('use_mixins')) {
         String mixin = modUtils.enableMixins("zone.rong:mixinbooter:${propertyString('mixin_booter_version')}", propertyString('mixin_refmap'))
-        api (mixin) {
+        implementation (mixin) {
             transitive = false
         }
-        annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
-        annotationProcessor 'com.google.guava:guava:32.1.2-jre'
-        annotationProcessor 'com.google.code.gson:gson:2.8.9'
-        annotationProcessor (mixin) {
-            transitive = false
-        }
+        annotationProcessor (mixin)
     }
     if (propertyBool('enable_junit_testing')) {
         testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
@@ -217,9 +212,6 @@ jar {
         if (propertyBool('use_access_transformer')) {
             attribute_map['FMLAT'] = propertyString('access_transformer_locations')
         }
-        // Pipeline #4a -- MixinConfigs container-scan attribute (read by MixinBooter's platform agent
-        // from this jar's manifest). Pipeline #4b -- MixinConnector attribute (loads the IMixinConnector).
-        // Both only fire when this mod is a real jar (packaged/obf run), not the exploded dev classpath.
         attribute_map['MixinConfigs'] = 'mixin.manifest.json'
         attribute_map['MixinConnector'] = 'com.example.dependent.ConsumerMixinConnector'
         attributes(attribute_map)
@@ -352,10 +344,6 @@ tasks.register('prioritizeCoremods') {
     }
 }
 
-// Dev-only: the exploded dev classpath has no jar manifest, so FML can't discover ConsumerCoreMod
-// via FMLCorePlugin. fml.coreMods.load forces it (pipeline #1). Scoped to runClient ONLY -- in
-// runObfClient the coremod is discovered from the real jar manifest, and this command-line arg would
-// CNFE (jar not on classpath when it is processed) and poison FML's coremod tracking.
 tasks.named('runClient', com.gtnewhorizons.retrofuturagradle.minecraft.RunMinecraftTask).configure {
     extraJvmArgs.add('-Dfml.coreMods.load=com.example.dependent.ConsumerCoreMod')
 }
