@@ -9,8 +9,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
-import org.spongepowered.asm.service.MixinService;
-import zone.rong.mixinbooter.Tags;
 
 import java.util.*;
 
