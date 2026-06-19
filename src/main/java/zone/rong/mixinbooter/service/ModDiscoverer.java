@@ -198,6 +198,18 @@ public final class ModDiscoverer {
 
     private static void scanJar(Gson gson, File jar) {
         try (JarFile jarFile = new JarFile(jar)) {
+            Manifest manifest = jarFile.getManifest();
+            if (manifest != null) {
+                Attributes attributes = manifest.getMainAttributes();
+                // Skip Cleanroom mods
+                if (ManifestAttributes.CLEANROOMMODTYPE.equals(attributes.getValue(ManifestAttributes.MODTYPE))) {
+                    LOGGER.info("Skipping {} as it is a Cleanroom mod.", jar.getName());
+                    return;
+                }
+                if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
+                    manifestMixinJars.add(jar);
+                }
+            }
             ZipEntry entry = jarFile.getEntry("mcmod.info");
             List<String> modIds = entry != null ? parseMcmodInfo(gson, jarFile.getInputStream(entry)) : Collections.emptyList();
             if (!modIds.isEmpty()) {
@@ -208,13 +220,6 @@ public final class ModDiscoverer {
                 String modId = scanModAnnotation(jarFile);
                 if (modId != null) {
                     recordMod(modId, jar);
-                }
-            }
-            Manifest manifest = jarFile.getManifest();
-            if (manifest != null) {
-                Attributes attributes = manifest.getMainAttributes();
-                if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
-                    manifestMixinJars.add(jar);
                 }
             }
         } catch (IOException e) {
