@@ -1,9 +1,9 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [UniMix 0.15.3 forked by CleanroomMC, derived from 0.8.7 branch by LegacyModdingMC](https://github.com/CleanroomMC/UniMix)
+- Current Mixin Version: [CleanMix 0.2.2 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.x)](https://github.com/CleanroomMC/CleanMix)
 
-- Current MixinExtra Version: [0.5.0](https://github.com/LlamaLad7/MixinExtras)
+- Current MixinExtra Version: [0.5.4](https://github.com/LlamaLad7/MixinExtras)
 
 ### Pseudo-Changelog:
 
@@ -19,6 +19,14 @@
 
 - As of 10.0, MixinBooter follows Mixin 0.8.7
 
+- As of 11.0, MixinBooter is built on [CleanMix](https://github.com/CleanroomMC/CleanMix).
+  - No longer would you need to declare dependencies for the annotation processor yourself.
+  - Also adds a config file (`config/mixinbooter.cfg`) to blacklist mixin configs and toggle debug options
+  - Dedicated `logs/mixinbooter.log` mixin log.
+  - Allows traditional `MixinConfig` + `MixinConnector` manifest attribute entries to be fully involved in the ecosystem
+  - Mod discovery for mixin owners, better `isModLoaded` checks
+  - Suppresses Forge's *corrupt zip* warnings
+
 ### For Developers ~ Getting Started:
 
 1. Add CleanroomMC's repository and depend on MixinBooter's maven entry:
@@ -31,38 +39,16 @@ repositories {
 }
 
 dependencies {
-
-    // Common:
-    annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
-    annotationProcessor 'com.google.guava:guava:32.1.2-jre'
-    annotationProcessor 'com.google.code.gson:gson:2.8.9'
-
-    // ForgeGradle:
-    implementation ('zone.rong:mixinbooter:10.7') {
-        transitive = false
-    }
-    annotationProcessor ('zone.rong:mixinbooter:10.7') {
-        transitive = false
-    }
+    def mixin = 'zone.rong:mixinbooter:11.0'
     
-    // RetroFuturaGradle:
-    String mixinBooter = modUtils.enableMixins('zone.rong:mixinbooter:10.7')
-    // modUtils.enableMixins('zone.rong:mixinbooter:10.7', 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
-    api (mixinBooter) {
+    implementation (mixin) {
         transitive = false
     }
-    annotationProcessor (mixinBooter) {
-        transitive = false
-    }
-}
+    annotationProcessor mixin
 
+    // RetroFuturaGradle for refmap generation:
+    modUtils.enableMixins(mixin)
+    // modUtils.enableMixins(mixin, 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
+}
 ```
 
-2. Pick your path:
-
-- Mixin into minecraft, forge or coremods? Make a *coremod* with `IFMLLoadingPlugin` and implement the class with `IEarlyMixinLoader`
--  Mixin into normal mods? Make a normal class anywhere in your mod file, implement the class with `ILateMixinLoader`
-
-3. Register your mixin configs
-- In either your `IEarlyMixinLoader` or `ILateMixinLoader` you have to return a list of mixin config names via the `getMixinConfigs` method
-- This is the path (relative to your `resources` root) to your mixin config.
