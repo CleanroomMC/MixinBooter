@@ -124,7 +124,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public Collection<String> getPlatformAgents() {
-        return Collections.singletonList(MixinPlatformAgent.class.getName());
+        return Collections.singletonList(MixinBooterPlatformAgent.class.getName());
     }
 
     @Override

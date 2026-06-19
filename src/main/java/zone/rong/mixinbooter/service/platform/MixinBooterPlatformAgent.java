@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class MixinPlatformAgent extends MixinPlatformAgentAbstract implements IMixinPlatformServiceAgent {
+public class MixinBooterPlatformAgent extends MixinPlatformAgentAbstract implements IMixinPlatformServiceAgent {
 
     @Override
     public AcceptResult accept(MixinPlatformManager manager, IContainerHandle handle) {
