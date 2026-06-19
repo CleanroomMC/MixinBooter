@@ -1,5 +1,6 @@
 package zone.rong.mixinbooter.util;
 
+import org.apache.commons.io.IOUtils;
 import org.spongepowered.asm.logging.Level;
 import zone.rong.mixinbooter.Tags;
 
@@ -27,7 +28,7 @@ import java.time.format.DateTimeFormatter;
  */
 public final class MixinBooterLogFile {
 
-    public static final String ENABLED_PROPERTY = "mixinbooter.auditTrail";
+    public static final String ENABLED_PROPERTY = Tags.MOD_ID + ".auditTrail";
 
     private static final String MESSAGE_FORMAT = "[%s] [%s/%s] [%s]: %s%s";
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -50,7 +51,8 @@ public final class MixinBooterLogFile {
         try {
             File dir = new File("logs");
             dir.mkdirs();
-            this.writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(dir, "mixinbooter.log"), false), StandardCharsets.UTF_8));
+            this.writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(new File(dir, Tags.MOD_ID + ".log"), false), StandardCharsets.UTF_8));
             Runtime.getRuntime().addShutdownHook(new Thread(this::close, Tags.MOD_NAME + "/LogCloser"));
         } catch (Throwable t) {
             System.err.println("[" + Tags.MOD_NAME + "]" + " Unable to open logs/mixinbooter.log: " + t);
@@ -95,12 +97,7 @@ public final class MixinBooterLogFile {
 
     private void close() {
         synchronized (this) {
-            if (this.writer == null) {
-                return;
-            }
-            try {
-                this.writer.close();
-            } catch (IOException ignored) { }
+            IOUtils.closeQuietly(this.writer);
         }
     }
 

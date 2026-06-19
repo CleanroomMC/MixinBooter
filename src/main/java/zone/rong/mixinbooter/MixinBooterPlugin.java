@@ -18,7 +18,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 
-@IFMLLoadingPlugin.Name("MixinBooter")
+@IFMLLoadingPlugin.Name(Tags.MOD_NAME)
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 

@@ -23,7 +23,7 @@ public final class MixinBooterConfig {
     static void load() {
         ILogger logger = MixinService.getService().getLogger(Tags.MOD_NAME);
         try {
-            Configuration config = new Configuration(new File("config", "mixinbooter.cfg"));
+            Configuration config = new Configuration(new File("config", Tags.MOD_ID + ".cfg"));
             config.load();
 
             String[] blacklistedConfigs = config.getStringList("blacklistedConfigs", Configuration.CATEGORY_GENERAL,
