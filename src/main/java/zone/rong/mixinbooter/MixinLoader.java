@@ -14,7 +14,9 @@ import java.lang.annotation.Target;
  * @since 9.2 this class was reinstated because of Forge not gathering interfaces in 1.8.x.
  * When used and paired with {@link ILateMixinLoader}, it will act the same way as it would in a 1.9+ setting.
  * Consult the usage of {@link ILateMixinLoader} for mod mixins, and for vanilla/forge mixins, consult the usage of {@link IEarlyMixinLoader}
+ * @deprecated since 11.0, use manifest entries MixinConfigs and MixinConnector instead, as original Mixin intended
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.CLASS)
+@Deprecated
 public @interface MixinLoader { }
