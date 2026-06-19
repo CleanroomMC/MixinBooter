@@ -1,6 +1,7 @@
 package zone.rong.mixinbooter;
 
 import org.apache.commons.lang3.SystemUtils;
+import zone.rong.mixinbooter.service.ModDiscoverer;
 import zone.rong.mixinbooter.util.Environment;
 
 import java.util.Collection;
@@ -9,7 +10,9 @@ import java.util.Collection;
  * This class contains loading context for callers
  *
  * @since 10.0
+ * @deprecated since 11.0, use {@link Environment#inDev()} & {@link ModDiscoverer#getPresentMods()} instead.
  */
+@Deprecated
 public final class Context {
 
     public enum ModLoader {
