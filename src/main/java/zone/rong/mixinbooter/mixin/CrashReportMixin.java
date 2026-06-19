@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import org.spongepowered.asm.service.MixinService;
 import zone.rong.mixinbooter.Tags;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -25,8 +24,6 @@ public class CrashReportMixin {
     @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), cancellable = true)
     private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, @Local(ordinal = 0) Throwable throwable) {
         try {
-            Field classInfo$mixins = ClassInfo.class.getDeclaredField("mixins");
-            classInfo$mixins.setAccessible(true);
             Map<String, ClassInfo> classes = new LinkedHashMap<>();
             while (throwable != null) {
                 if (throwable instanceof NoClassDefFoundError) {
