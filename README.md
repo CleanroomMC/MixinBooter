@@ -30,7 +30,6 @@
 ### For Developers ~ Getting Started:
 
 1. Add CleanroomMC's repository and depend on MixinBooter's maven entry:
-
 ```groovy
 repositories {
     maven {
@@ -49,6 +48,37 @@ dependencies {
     // RetroFuturaGradle for refmap generation:
     modUtils.enableMixins(mixin)
     // modUtils.enableMixins(mixin, 'mod_id.mixins.refmap.json') << add refmap name as 2nd arg (optional)
+}
+```
+
+2. Pick how to register your mixin configurations. MixinBooter supports lots of approaches:
+
+(As of 11.0, early/late divide is no longer present, therefore IEarly/ILateMixinLoaders are deprecated)
+
+- **`MixinConfigs` manifest attribute**: no loader class needed. Add a space-separated list of your mixin configuration names to your jar's manifest. MixinBooter reads it straight from the jar's manifest and registers them.
+- **`MixinConnector` manifest attribute**: register configs programmatically. Point it at a class implementing `org.spongepowered.asm.mixin.connect.IMixinConnector`, its `connect()` is called during boot, where you call `Mixins.addConfiguration(...)` yourself.
+
+Both manifest attributes are set on your jar task:
+
+```groovy
+jar {
+    manifest {
+        attributes(
+                'MixinConfigs': 'mixins.mymod.json',
+                'MixinConnector': 'com.example.mymod.MyMixinConnector'
+        )
+    }
+}
+```
+
+```java
+public class MyMixinConnector implements IMixinConnector {
+    
+    @Override
+    public void connect() {
+        Mixins.addConfiguration("mixins.mymod.json");
+    }
+    
 }
 ```
 
