@@ -113,7 +113,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.lib.");
         Launch.classLoader.addClassLoaderExclusion("org.objectweb.asm.");
         Launch.classLoader.addClassLoaderExclusion("zone.rong.mixinbooter.service.");
-        Launch.classLoader.addClassLoaderExclusion("com.llamalad7.mixinextras.");
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
