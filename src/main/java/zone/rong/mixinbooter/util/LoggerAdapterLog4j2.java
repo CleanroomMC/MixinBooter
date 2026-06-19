@@ -30,25 +30,31 @@ public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
     @Override
     public void catching(Level level, Throwable t) {
         this.logger.catching(LEVELS[level.ordinal()], t);
+        MixinBooterLogFile.get().write(level, this.getId(), "Catching " + t, t);
     }
 
     @Override
     public void catching(Throwable t) {
         this.logger.catching(t);
+        MixinBooterLogFile.get().write(Level.WARN, this.getId(), "Catching " + t, t);
     }
 
     @Override
     public void log(Level level, String message, Object... params) {
         this.logger.log(LEVELS[level.ordinal()], message, params);
+        LoggerAdapterAbstract.FormattedMessage formatted = new LoggerAdapterAbstract.FormattedMessage(message, params);
+        MixinBooterLogFile.get().write(level, this.getId(), formatted.getMessage(), formatted.getThrowable());
     }
 
     @Override
     public void log(Level level, String message, Throwable t) {
         this.logger.log(LEVELS[level.ordinal()], message, t);
+        MixinBooterLogFile.get().write(level, this.getId(), message, t);
     }
 
     @Override
     public <T extends Throwable> T throwing(T t) {
+        MixinBooterLogFile.get().write(Level.WARN, this.getId(), "Throwing " + t, t);
         return this.logger.throwing(t);
     }
 

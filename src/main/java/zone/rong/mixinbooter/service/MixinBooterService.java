@@ -11,7 +11,7 @@ import org.spongepowered.asm.service.*;
 import org.spongepowered.asm.service.clean.ICleanMixinService;
 import org.spongepowered.asm.service.mojang.Blackboard;
 import zone.rong.mixinbooter.Tags;
-import zone.rong.mixinbooter.service.platform.MixinPlatformAgent;
+import zone.rong.mixinbooter.service.platform.MixinBooterPlatformAgent;
 import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.util.LoggerAdapterLog4j2;
 
@@ -23,7 +23,6 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 public class MixinBooterService extends MixinServiceAbstract implements ICleanMixinService {
 
@@ -34,6 +33,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
     private final TransformerProvider transformerProvider = new TransformerProvider();
     private final LaunchClassLoaderUtil classLoaderUtil = new LaunchClassLoaderUtil(Launch.classLoader);
     private final BytecodeProvider bytecodeProvider = new BytecodeProvider(transformerProvider, this.getReEntranceLock(), classLoaderUtil);
+    private final IMixinAuditTrail auditTrail = new MixinBooterAuditTrail();
 
     public MixinBooterService() { }
 
@@ -109,7 +109,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public IMixinAuditTrail getAuditTrail() {
-        return null;
+        return auditTrail;
     }
 
     @Override
