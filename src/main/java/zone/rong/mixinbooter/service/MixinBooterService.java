@@ -23,6 +23,7 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class MixinBooterService extends MixinServiceAbstract implements ICleanMixinService {
 
@@ -154,7 +155,8 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
     /**
      * A config's source id is used as its canonical mod (owner) id. {@code getCleanSourceId()} therefore will mirror
      * the mod id. Resolve the container jar to its mod id via ModDiscoverer.
-     * Fallback to the jar file name for libraries/dev classpath dirs that have no {@code mcmod.info}.
+     * Fallback to the jar's base name (extension and version stripped) for libraries/dev classpath dirs
+     * that have no {@code mcmod.info}.
      */
     @Override
     public String getSourceId(URI source) {
@@ -174,7 +176,33 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
             return null;
         }
         int lastSlash = path.lastIndexOf('/');
-        return lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+        return jarBaseName(lastSlash >= 0 ? path.substring(lastSlash + 1) : path);
+    }
+
+    /**
+     * Best-effort owner id for a container that declares no mod: the file name with the {@code .jar}
+     * extension and trailing {@code -version} suffix stripped. {@code getCleanSourceId()} ({@link
+     * org.spongepowered.asm.mixin.extensibility.IMixinConfig#cleanId}) will drop everything else that
+     * is not alphanumeric (sort prefixes like {@code !}, bracketed/CJK name prefixes, separators).
+     */
+    private static String jarBaseName(String name) {
+        if (name.endsWith(".jar")) {
+            name = name.substring(0, name.length() - ".jar".length());
+        }
+        // Strip the trailing versioning
+        int i = name.length();
+        while (i > 0 && (Character.isDigit(name.charAt(i - 1)) || name.charAt(i - 1) == '.')) {
+            i--;
+        }
+        // How...?
+        if (i == 0 || i == name.length()) {
+            return name;
+        }
+        // Drop separator if the jar is conventionally named
+        if (name.charAt(i - 1) == '-') {
+            i--;
+        }
+        return name.substring(0, i);
     }
 
 }
