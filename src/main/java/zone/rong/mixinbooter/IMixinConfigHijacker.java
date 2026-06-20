@@ -8,7 +8,9 @@ import java.util.Set;
  * Requested by: @Desoroxxx
  *
  * @since 9.0
+ * @deprecated since 11.0, use {@link org.spongepowered.asm.mixin.transformer.Config#blacklist(String)}
  */
+@Deprecated
 public interface IMixinConfigHijacker {
 
     /**
