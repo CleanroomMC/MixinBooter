@@ -1,6 +1,5 @@
 package zone.rong.mixinbooter;
 
-import org.apache.commons.lang3.SystemUtils;
 import zone.rong.mixinbooter.service.ModDiscoverer;
 import zone.rong.mixinbooter.util.Environment;
 
@@ -20,8 +19,6 @@ public final class Context {
         FORGE,
         CLEANROOM;
 
-        private static final ModLoader CURRENT = SystemUtils.IS_JAVA_1_8 ? FORGE : CLEANROOM;
-
     }
 
     private final String mixinConfig;
@@ -36,7 +33,7 @@ public final class Context {
      * @return the current mod loader
      */
     public ModLoader modLoader() {
-        return ModLoader.CURRENT;
+        return ModLoader.FORGE;
     }
 
     /**
