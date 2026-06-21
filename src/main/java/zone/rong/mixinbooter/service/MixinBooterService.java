@@ -165,7 +165,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
         }
         if ("file".equals(source.getScheme())) {
             try {
-                String modId = ModDiscoverer.getSourceMod(new File(source));
+                String modId = ModDiscoverer.getModFromSource(new File(source));
                 if (modId != null) {
                     return modId;
                 }

@@ -86,14 +86,14 @@ public final class ModDiscoverer {
 
     /**
      * Returns the id of the mod owning the given jar.
-     * Use {@link #getSourceMods(File)} instead if you need every declared id.
+     * Use {@link #getModsFromSource(File)} instead if you need every declared id.
      *
      * @param source the jar to resolve
      * @return the owning mod's id (first declared via {@code mcmod.info}, else its {@code @Mod} annotation),
      *         or {@code null} if the jar declares no mod
      */
-    public static String getSourceMod(File source) {
-        Set<String> ids = getSourceMods(source);
+    public static String getModFromSource(File source) {
+        Set<String> ids = getModsFromSource(source);
         return ids.isEmpty() ? null : ids.iterator().next();
     }
 
@@ -105,7 +105,7 @@ public final class ModDiscoverer {
      * @param source the jar to inspect
      * @return the mod ids the jar declares (empty if none)
      */
-    public static Set<String> getSourceMods(File source) {
+    public static Set<String> getModsFromSource(File source) {
         return Collections.unmodifiableSet(fileToModIds.get(source.getAbsoluteFile()));
     }
 
