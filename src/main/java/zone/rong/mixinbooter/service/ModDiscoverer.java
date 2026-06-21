@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -142,18 +141,6 @@ public final class ModDiscoverer {
             } catch (URISyntaxException ignored) { }
         }
 
-        // OptiFine ships no mcmod.info; detect with Config class (see: FMLClientHandler#detectOptifine)
-        URL optifineUrl = Launch.classLoader.findResource("Config.class");
-        if (optifineUrl != null) {
-            String path = optifineUrl.getPath();
-            int bangSlash = path.indexOf("!/");
-            if (bangSlash >= 0) {
-                try {
-                    recordMod("optifine", new File(new URI(path.substring(0, bangSlash))));
-                } catch (URISyntaxException ignored) { }
-            }
-        }
-
         pullManifestMixinJars();
 
         LOGGER.info("Finished gathering {} mods...", modIdToFiles.keySet().size());
@@ -209,19 +196,24 @@ public final class ModDiscoverer {
                 if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
                     manifestMixinJars.add(jar);
                 }
+                // OptiFine special-case
+                if ("optifine.OptiFineForgeTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
+                    recordMod("optifine", jar);
+                    return;
+                }
             }
             ZipEntry entry = jarFile.getEntry("mcmod.info");
             List<String> modIds = entry != null ? parseMcmodInfo(gson, jarFile.getInputStream(entry)) : Collections.emptyList();
-            if (!modIds.isEmpty()) {
-                for (String modId : modIds) {
-                    recordMod(modId, jar);
-                }
-            } else {
+            if (modIds.isEmpty()) {
                 String modId = scanModAnnotation(jarFile);
                 if (modId != null) {
-                    recordMod(modId, jar);
+                    modIds = Collections.singletonList(modId);
                 }
             }
+            for (String modId : modIds) {
+                recordMod(modId, jar);
+            }
+            checkIfJarBundlesMixin(jar, jarFile, modIds);
         } catch (IOException e) {
             LOGGER.error("Failed to read mod metadata from {}", jar.getName(), e);
         }
@@ -231,6 +223,18 @@ public final class ModDiscoverer {
         File abs = source.getAbsoluteFile();
         modIdToFiles.put(modId, abs);
         fileToModIds.put(abs, modId);
+    }
+
+    /**
+     * Logs if a mod jar bundles its own Mixin engine of any fork variety.
+     */
+    private static void checkIfJarBundlesMixin(File jar, JarFile jarFile, List<String> modIds) {
+        if (modIds.isEmpty() || modIds.contains("mixinbooter")) {
+            return;
+        }
+        if (jarFile.getEntry("org/spongepowered/asm/launch/MixinBootstrap.class") != null) {
+            LOGGER.warn("{} bundles its own Mixins and this may cause issues. It should depend on MixinBooter instead.", jar.getName());
+        }
     }
 
     private static List<String> parseMcmodInfo(Gson gson, InputStream stream) {
