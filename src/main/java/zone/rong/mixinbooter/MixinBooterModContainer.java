@@ -3,30 +3,36 @@ package zone.rong.mixinbooter;
 import com.google.common.eventbus.EventBus;
 import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.LoadController;
+import net.minecraftforge.fml.common.MetadataCollection;
 import net.minecraftforge.fml.common.ModMetadata;
 import net.minecraftforge.fml.common.versioning.ArtifactVersion;
 import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
 import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
 import net.minecraftforge.fml.common.versioning.VersionRange;
-import org.spongepowered.asm.service.MixinService;
 import zone.rong.mixinbooter.util.Environment;
 
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Set;
 
 public class MixinBooterModContainer extends DummyModContainer {
 
+    private static ModMetadata loadMetadata() {
+        ModMetadata meta;
+        try (InputStream inputStream = MixinBooterModContainer.class.getResourceAsStream("/mcmod.info")) {
+            meta = MetadataCollection.from(inputStream, Tags.MOD_ID).getMetadataForId(Tags.MOD_ID, Collections.emptyMap());
+        } catch (Throwable ignored) {
+            meta = new ModMetadata();
+            meta.modId = Tags.MOD_ID;
+            meta.name = Tags.MOD_NAME;
+            meta.version = Tags.VERSION;
+            meta.authorList.add("Rongmario");
+        }
+        return meta;
+    }
+
     public MixinBooterModContainer() {
-        super(new ModMetadata());
-        MixinService.getService().getLogger(Tags.MOD_NAME).info("Initializing Mod Container.");
-        ModMetadata meta = this.getMetadata();
-        meta.modId = Tags.MOD_ID;
-        meta.name = Tags.MOD_NAME;
-        meta.description = "A mod that provides the Sponge Mixin library, a standard API for mods to load mixins targeting Minecraft and other mods, and associated useful utilities on 1.8 - 1.12.2.";
-        meta.credits = "Thanks to LegacyModdingMC + Fabric for providing the initial mixin fork.";
-        meta.version = Tags.VERSION;
-        meta.logoFile = "/icon.png";
-        meta.authorList.add("Rongmario");
+        super(loadMetadata());
     }
 
     @Override

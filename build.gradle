@@ -196,7 +196,7 @@ tasks.register('runTestClient', RunMinecraftTask, Distribution.CLIENT).configure
 
 processResources {
     inputs.property 'mod_version', project.version
-    inputs.property 'mod_id', project.base.archivesName
+    inputs.property 'mod_id', project.base.archivesName.get()
     inputs.property 'mod_name', project.mod_name
     inputs.property 'cleanmix_version', project.cleanmix_version
     inputs.property 'mixinextras_version', project.mixinextras_version
@@ -204,7 +204,7 @@ processResources {
     filesMatching('mcmod.info') {
         expand(
                 'mod_version': project.version,
-                'mod_id': project.base.archivesName,
+                'mod_id': project.base.archivesName.get(),
                 'mod_name': project.mod_name,
                 'cleanmix_version': project.cleanmix_version,
                 'mixinextras_version': project.mixinextras_version
