@@ -8,6 +8,7 @@ import org.spongepowered.asm.launch.platform.container.ContainerHandleURI;
 import org.spongepowered.asm.launch.platform.container.IContainerHandle;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
+import org.spongepowered.asm.obfuscation.mapping.remap.CleanroomRemapper;
 import org.spongepowered.asm.obfuscation.mapping.remap.Srg2McpRemapper;
 import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.util.Srg2NotchRemapper;
@@ -52,7 +53,9 @@ public class MixinBooterPlatformAgent extends MixinPlatformAgentAbstract impleme
     }
 
     private void injectRemapper() {
-        IRemapper remapper = Environment.inDev() ? new Srg2McpRemapper(MixinEnvironment.getDefaultEnvironment()) : new Srg2NotchRemapper();
+        IRemapper remapper = Environment.inDev() ?
+                new Srg2McpRemapper(MixinEnvironment.getDefaultEnvironment()) :
+                new CleanroomRemapper<>(new Srg2NotchRemapper());
         MixinEnvironment.getDefaultEnvironment().getRemappers().add(remapper);
     }
 
