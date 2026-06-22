@@ -4,6 +4,7 @@ import net.minecraftforge.common.config.Configuration;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
+import zone.rong.mixinbooter.service.ClassLoadTracer;
 import zone.rong.mixinbooter.util.MixinBooterLogFile;
 
 import java.io.File;
@@ -52,6 +53,32 @@ public final class MixinBooterConfig {
                     "Export transformed classes to the .mixin.out directory (Equivalent to: -Dmixin.debug.export=true).");
             applyFlag(config, "checkInterfaces", "mixin.checks.interfaces",
                     "Verify that mixins implement every method of the interfaces they declare (Equivalent to: -Dmixin.checks.interfaces=true).");
+
+            String[] watchedClasses = config.getStringList("watchedClasses", CATEGORY_DEBUG, new String[0],
+                    "Fully-qualified class names to trace at load time. When one of these classes is loaded, the\n" +
+                    "call stack that triggered the load is written to logs/mixinbooter.log. Use this to diagnose\n" +
+                    "'mixin target was loaded too early' problems by finding which code class-loaded the target.\n" +
+                    "Use a single '*' to trace (near) every class load (very verbose). Leave empty to disable.\n" +
+                    "Example: net.minecraft.client.Minecraft");
+            StringBuilder watched = new StringBuilder();
+            String existing = System.getProperty(ClassLoadTracer.WATCH_PROPERTY);
+            if (existing != null && !existing.trim().isEmpty()) {
+                watched.append(existing.trim());
+            }
+            for (String watchedClass : watchedClasses) {
+                if (watchedClass != null) {
+                    watchedClass = watchedClass.trim();
+                    if (!watchedClass.isEmpty()) {
+                        if (watched.length() > 0) {
+                            watched.append(',');
+                        }
+                        watched.append(watchedClass);
+                    }
+                }
+            }
+            if (watched.length() > 0) {
+                System.setProperty(ClassLoadTracer.WATCH_PROPERTY, watched.toString());
+            }
 
             if (config.hasChanged()) {
                 config.save();

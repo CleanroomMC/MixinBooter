@@ -28,6 +28,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     private static final String PROXY = MixinServiceAbstract.MIXIN_PACKAGE + "transformer.Proxy";
     private static final String STATE_TWEAKER = MixinServiceAbstract.MIXIN_PACKAGE + "EnvironmentStateTweaker";
+    private static final String CLASS_LOAD_TRACER = "zone.rong.mixinbooter.service.ClassLoadTracer";
 
     private final ClassProvider classProvider = new ClassProvider();
     private final TransformerProvider transformerProvider = new TransformerProvider();
@@ -72,6 +73,8 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public void beginPhase() {
+        Launch.classLoader.registerTransformer(CLASS_LOAD_TRACER);
+        this.transformerProvider.addTransformerExclusion(CLASS_LOAD_TRACER);
         Launch.classLoader.registerTransformer(PROXY);
         // The mixin transformer must never be in the delegated chain that BytecodeProvider applies
         // when fetching a target class's bytecode. Otherwise, resolving a mixin target re-enters the
