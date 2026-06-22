@@ -19,10 +19,10 @@
 
 - As of 10.0, MixinBooter follows Mixin 0.8.7
 
-- As of 11.0, MixinBooter is built on [CleanMix](https://github.com/CleanroomMC/CleanMix).
+- As of 11.0, MixinBooter is built on [CleanMix](https://github.com/CleanroomMC/CleanMix). As an effort to create an unified backend with [Cleanroom](https://cleanroommc.com/).
   - No longer would you need to declare dependencies for the annotation processor yourself.
   - Also adds a config file (`config/mixinbooter.cfg`) to blacklist mixin configs and toggle debug options
-  - Dedicated `logs/mixinbooter.log` mixin log.
+  - Dedicated `logs/mixinbooter.log` mixin log. With ability to trace class-loading for precise debugging.
   - Allows traditional `MixinConfig` + `MixinConnector` manifest attribute entries to be fully involved in the ecosystem
   - Mod discovery for mixin owners, better `isModLoaded` checks
   - Suppresses Forge's *corrupt zip* warnings
