@@ -37,8 +37,7 @@ minecraft {
     extraRunJvmArguments.addAll([
             "-ea:${project.group}",
             '-Dmixin.checks.interfaces=true',
-            '-Dmixin.debug.export=true',
-            "-Dfml.coreMods.load=${coremod_plugin_name}"
+            '-Dmixin.debug.export=true'
     ])
     injectedTags.put('VERSION', project.version)
     injectedTags.put('MOD_ID', project.base.archivesName)
@@ -191,6 +190,12 @@ tasks.register('runTestClient', RunMinecraftTask, Distribution.CLIENT).configure
             from configurations.testmodMod
             into modsDir
         }
+    }
+}
+
+['runClient', 'runServer', 'runTestClient'].each { taskName ->
+    tasks.named(taskName, RunMinecraftTask).configure {
+        extraJvmArgs.add("-Dfml.coreMods.load=${coremod_plugin_name}".toString())
     }
 }
 
