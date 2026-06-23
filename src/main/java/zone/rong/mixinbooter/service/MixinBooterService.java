@@ -59,6 +59,11 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
     }
 
     @Override
+    public String getSideName() {
+        return Environment.side();
+    }
+
+    @Override
     public MixinEnvironment.CompatibilityLevel getMaxCompatibilityLevel() {
         return MixinEnvironment.CompatibilityLevel.JAVA_8;
     }
