@@ -22,6 +22,8 @@ import java.util.*;
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
+    private static final String MIXIN_TWEAKER = "org.spongepowered.asm.launch.MixinTweaker";
+
     public MixinBooterPlugin() {
         this.initialize();
     }
@@ -69,6 +71,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
      * {@link zone.rong.mixinbooter.service.MixinServiceBootstrap}
      * and {@link zone.rong.mixinbooter.service.MixinBooterService} respectively.
      * Then the mixin subsystem is initialized - {@link MixinBootstrap#init()}
+     * {@link #injectMixinTweaker()} claims the MixinTweaker tweaker so we own the single instance LaunchWrapper creates.
      * Config is read straight afterwards.
      */
     private void initialize() {
@@ -79,6 +82,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         System.setProperty("mixin.service", "zone.rong.mixinbooter.service.MixinBooterService");
 
         MixinBootstrap.init();
+        this.injectMixinTweaker();
         ModDiscoverer.discover();
         ModDiscoverer.rescueDroppedCoremods();
         MixinBooterConfig.load();
@@ -117,6 +121,14 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.lib.");
         Launch.classLoader.addClassLoaderExclusion("org.objectweb.asm.");
         Launch.classLoader.addClassLoaderExclusion("zone.rong.mixinbooter.service.");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void injectMixinTweaker() {
+        List<String> tweakClasses = (List<String>) Launch.blackboard.get("TweakClasses");
+        if (tweakClasses != null && !tweakClasses.contains(MIXIN_TWEAKER)) {
+            tweakClasses.add(MIXIN_TWEAKER);
+        }
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {
