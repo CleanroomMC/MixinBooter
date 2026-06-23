@@ -25,17 +25,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -171,18 +165,27 @@ public final class ModDiscoverer {
             LOGGER.error("Unable to access crucial internals. Coremods declared alongside a TweakClass will not be loaded.", t);
             return;
         }
-        Set<String> loaded = new HashSet<>();
+        Map<String, File> coremods = new HashMap<>();
         for (Map.Entry<File, String> entry : droppedCoremods.entrySet()) {
             File jar = entry.getKey();
             String coremod = entry.getValue();
-            if (!loaded.add(coremod)) {
+            if (coremods.containsKey(coremod)) {
                 continue;
             }
             try {
                 Launch.classLoader.addURL(jar.toURI().toURL());
+                coremods.put(coremod, jar);
+            } catch (MalformedURLException e) {
+                LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName(), e);
+            }
+        }
+        for (Map.Entry<String, File> entry : coremods.entrySet()) {
+            String coremod = entry.getKey();
+            File jar = entry.getValue();
+            try {
                 Object wrapper = loadCoreMod.invoke(null, Launch.classLoader, coremod, jar);
                 if (wrapper != null) {
-                    LOGGER.warn("{} declares both a TweakClass and FMLCorePlugin. Forge skips the coremod in this case and  {} was loaded manually. Ship it as a normal coremod without a TweakClass.", jar.getName(), coremod);
+                    LOGGER.warn("{} declares both a TweakClass and FMLCorePlugin. Forge skips the coremod in this case and {} was loaded manually. Ship it as a normal coremod without a TweakClass.", jar.getName(), coremod);
                 } else {
                     LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName());
                 }
