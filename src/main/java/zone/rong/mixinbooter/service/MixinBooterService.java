@@ -38,6 +38,8 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
     private final BytecodeProvider bytecodeProvider = new BytecodeProvider(transformerProvider, this.getReEntranceLock(), classLoaderUtil);
     private final IMixinAuditTrail auditTrail = new MixinBooterAuditTrail();
 
+    private boolean initialized = false;
+
     public MixinBooterService() { }
 
     @Override
@@ -91,6 +93,10 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public void init() {
+        if (this.initialized) {
+            return;
+        }
+        this.initialized = true;
         // Remapper
         IRemapper remapper = Environment.inDev() ?
                 new Srg2McpRemapper(MixinEnvironment.getDefaultEnvironment()) :
