@@ -48,6 +48,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
     @Override
     public void injectData(Map<String, Object> data) {
+        ModDiscoverer.applyForceLoadAsMod();
         Object coremodList = data.get("coremodList");
         if (coremodList instanceof List) {
             Collection<IEarlyMixinLoader> earlyLoaders = this.gatherEarlyLoaders((List) coremodList);
@@ -79,6 +80,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
         MixinBootstrap.init();
         ModDiscoverer.discover();
+        ModDiscoverer.rescueDroppedCoremods();
         MixinBooterConfig.load();
     }
 

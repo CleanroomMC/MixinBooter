@@ -7,6 +7,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import net.minecraft.launchwrapper.Launch;
+import net.minecraft.launchwrapper.LaunchClassLoader;
+import net.minecraftforge.fml.relauncher.CoreModManager;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -22,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +32,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -45,9 +50,16 @@ import java.util.zip.ZipEntry;
 public final class ModDiscoverer {
 
     private static final ILogger LOGGER = MixinService.getService().getLogger(Tags.MOD_NAME);
+    private static final String FORCE_LOAD_AS_MOD = "ForceLoadAsMod";
+    private static final String COREMOD_CONTAINS_FML_MOD = "FMLCorePluginContainsFMLMod";
+    private static final String FML_CORE_PLUGIN = "FMLCorePlugin";
+
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
     private static final Set<File> manifestMixinJars = new HashSet<>();
+    private static final Set<String> forceLoadAsModFiles = new HashSet<>();
+    private static final Set<String> forceReparseableFiles = new HashSet<>();
+    private static final Map<File, String> droppedCoremods = new LinkedHashMap<>();
 
     private static boolean discovered = false;
 
@@ -109,10 +121,75 @@ public final class ModDiscoverer {
     }
 
     /**
-     * Internal usage, files with mixin config/connector entries declared in its manifest.
+     * Honors the {@code ForceLoadAsMod} manifest key for every jar collected during {@link #discover()}.
+     * Replicating the only behavior the removed {@code MixinPlatformAgentFMLLegacy} still provided which was
+     * un-ignoring jars so Forge would load it as mods. Forge unconditionally adds cascading-tweaker jars
+     * to its ignored list and never reaches its own {@code FMLCorePluginContainsFMLMod} handling for them.
+     * Without this functionality those jars would silently fail to load as mods.
+     * Must run after {@link CoreModManager#discoverCoreMods} has fully populated the ignored list, i.e. from
+     * {@code injectData} and not from the plugin constructor.
      */
-    static Set<File> manifestMixinJars() {
-        return manifestMixinJars;
+    public static void applyForceLoadAsMod() {
+        if (forceLoadAsModFiles.isEmpty()) {
+            return;
+        }
+        List<String> ignored = CoreModManager.getIgnoredMods();
+        List<String> reparseable = CoreModManager.getReparseableCoremods();
+        for (String name : forceLoadAsModFiles) {
+            ignored.remove(name);
+            LOGGER.warn("{} uses \"ForceLoadAsMod\" to be loaded as a mod from its coremod jar. This is legacy behaviour, it should be shipped as a normal mod.", name);
+        }
+        for (String name : forceReparseableFiles) {
+            if (!reparseable.contains(name)) {
+                reparseable.add(name);
+            }
+        }
+    }
+
+    /**
+     * Loads the {@code FMLCorePlugin} of every jar that also declares a {@code TweakClass},
+     * which Forge's {@link CoreModManager#discoverCoreMods} skips.
+     * The removed {@code MixinPlatformAgentFMLLegacy} re-injected these via {@code CoreModManager.loadCoreMod}
+     * and this replicates that. Must run from the plugin constructor, before
+     * {@code injectCoreModTweaks} drains {@code loadPlugins} into the tweak list. FML then injects and sorts
+     * the wrapper naturally and no manual co-initialization is required.
+     */
+    public static void rescueDroppedCoremods() {
+        if (droppedCoremods.isEmpty()) {
+            return;
+        }
+        Method loadCoreMod;
+//        Field loadPlugins, location;
+        try {
+            loadCoreMod = CoreModManager.class.getDeclaredMethod("loadCoreMod", LaunchClassLoader.class, String.class, File.class);
+            loadCoreMod.setAccessible(true);
+//            loadPlugins = CoreModManager.class.getDeclaredField("loadPlugins");
+//            loadPlugins.setAccessible(true);
+//            location = Class.forName("net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper", true, Launch.classLoader).getDeclaredField("location")
+//            location.setAccessible(true);
+        } catch (Throwable t) {
+            LOGGER.error("Unable to access crucial internals. Coremods declared alongside a TweakClass will not be loaded.", t);
+            return;
+        }
+        Set<String> loaded = new HashSet<>();
+        for (Map.Entry<File, String> entry : droppedCoremods.entrySet()) {
+            File jar = entry.getKey();
+            String coremod = entry.getValue();
+            if (!loaded.add(coremod)) {
+                continue;
+            }
+            try {
+                Launch.classLoader.addURL(jar.toURI().toURL());
+                Object wrapper = loadCoreMod.invoke(null, Launch.classLoader, coremod, jar);
+                if (wrapper != null) {
+                    LOGGER.warn("{} declares both a TweakClass and FMLCorePlugin. Forge skips the coremod in this case and  {} was loaded manually. Ship it as a normal coremod without a TweakClass.", jar.getName(), coremod);
+                } else {
+                    LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName());
+                }
+            } catch (Exception e) {
+                LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName(), e);
+            }
+        }
     }
 
     /**
@@ -152,6 +229,13 @@ public final class ModDiscoverer {
         LOGGER.debug("Mods gathered: {}", String.join(", ", modIdToFiles.keySet()));
     }
 
+    /**
+     * Internal usage, files with mixin config/connector entries declared in its manifest.
+     */
+    static Set<File> manifestMixinJars() {
+        return manifestMixinJars;
+    }
+
     private static void scanDirectory(Gson gson, File dir) {
         if (!dir.isDirectory()) {
             return;
@@ -178,6 +262,8 @@ public final class ModDiscoverer {
                 if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
                     manifestMixinJars.add(jar);
                 }
+                collectForceLoadAsMod(jar, attributes);
+                collectDroppedCoremod(jar, attributes);
                 // OptiFine special-case
                 if ("optifine.OptiFineForgeTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
                     recordMod("optifine", jar);
@@ -269,6 +355,34 @@ public final class ModDiscoverer {
             } catch (Exception ignored) { }
         }
         return null;
+    }
+
+    /**
+     * Records a jar that declares both a {@code TweakClass} and an {@code FMLCorePlugin}. Forge abandons the
+     * {@code FMLCorePlugin} the moment it sees a {@code TweakClass}, so the coremod is rescued later by
+     * {@link #rescueDroppedCoremods()}.
+     */
+    private static void collectDroppedCoremod(File jar, Attributes attributes) {
+        String coremod = attributes.getValue(FML_CORE_PLUGIN);
+        if (coremod != null && attributes.getValue(ManifestAttributes.TWEAKER) != null) {
+            droppedCoremods.put(jar.getAbsoluteFile(), coremod);
+        }
+    }
+
+    /**
+     * Records a jar that requests Mixin's {@code ForceLoadAsMod} manifest key so it can be honored later by
+     * {@link #applyForceLoadAsMod()}.
+     * The actual mutation of Forge's coremod lists is deferred because this runs while
+     * {@link CoreModManager#discoverCoreMods} is still populating relevant lists.
+     */
+    private static void collectForceLoadAsMod(File jar, Attributes attributes) {
+        if (!"true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
+            return;
+        }
+        forceLoadAsModFiles.add(jar.getName());
+        if (attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null && !jar.getAbsolutePath().contains("deobfedDeps")) {
+            forceReparseableFiles.add(jar.getName());
+        }
     }
 
     /**
