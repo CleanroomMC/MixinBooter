@@ -1,28 +1,30 @@
 package zone.rong.mixinbooter.service;
 
 import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.relauncher.CoreModManager;
 import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.platform.container.ContainerHandleURI;
 import org.spongepowered.asm.launch.platform.container.IContainerHandle;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
+import org.spongepowered.asm.mixin.extensibility.IRemapper;
+import org.spongepowered.asm.obfuscation.mapping.remap.CleanroomRemapper;
+import org.spongepowered.asm.obfuscation.mapping.remap.Srg2McpRemapper;
 import org.spongepowered.asm.service.*;
 import org.spongepowered.asm.service.clean.ICleanMixinService;
 import org.spongepowered.asm.service.mojang.Blackboard;
 import zone.rong.mixinbooter.Tags;
-import zone.rong.mixinbooter.service.platform.MixinBooterPlatformAgent;
 import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.util.LoggerAdapterLog4j2;
+import zone.rong.mixinbooter.util.Srg2NotchRemapper;
 
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class MixinBooterService extends MixinServiceAbstract implements ICleanMixinService {
 
@@ -84,8 +86,14 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public void init() {
+        // Remapper
+        IRemapper remapper = Environment.inDev() ?
+                new Srg2McpRemapper(MixinEnvironment.getDefaultEnvironment()) :
+                new CleanroomRemapper<>(new Srg2NotchRemapper());
+        MixinEnvironment.getDefaultEnvironment().getRemappers().add(remapper);
+        // EnvironmentStateTweaker
         GlobalProperties.<List<String>>get(Blackboard.TWEAK_CLASSES_KEY).add(STATE_TWEAKER);
-        if (Environment.inDev()) {
+        if (Environment.inDev()) { // RFG
             Mixins.addConfiguration("mixin.mixinbooter.init.json");
         }
     }
@@ -127,7 +135,7 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
 
     @Override
     public Collection<String> getPlatformAgents() {
-        return Collections.singletonList(MixinBooterPlatformAgent.class.getName());
+        return Collections.emptyList();
     }
 
     @Override
@@ -138,6 +146,31 @@ public class MixinBooterService extends MixinServiceAbstract implements ICleanMi
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Collection<IContainerHandle> getMixinContainers() {
+        List<IContainerHandle> containers = new ArrayList<>();
+        Set<File> jars = ModDiscoverer.manifestMixinJars();
+        if (jars.isEmpty()) {
+            return containers;
+        }
+        ILogger logger = getLogger(Tags.MOD_NAME);
+        Set<String> existingJars = new HashSet<>(CoreModManager.getIgnoredMods());
+        existingJars.addAll(CoreModManager.getReparseableCoremods());
+        for (File jar : jars) {
+            containers.add(new ContainerHandleURI(jar.toURI()));
+            if (existingJars.contains(jar.getName())) {
+                continue;
+            }
+            try {
+                Launch.classLoader.addURL(jar.toURI().toURL());
+                logger.info("Added {} to the classloader to process its mixin manifest attributes.", jar.getName());
+            } catch (Exception e) {
+                logger.error("Failed to add {} to the classloader to process its mixin manifest attributes.", jar.getName(), e);
+            }
+        }
+        return containers;
     }
 
     @Override

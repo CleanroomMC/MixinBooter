@@ -109,6 +109,13 @@ public final class ModDiscoverer {
     }
 
     /**
+     * Internal usage, files with mixin config/connector entries declared in its manifest.
+     */
+    static Set<File> manifestMixinJars() {
+        return manifestMixinJars;
+    }
+
+    /**
      * Walks the mods directory on disk (FML-style) and
      * supplements with classpath entries already on the LaunchClassLoader.
      * Must be called once before FML's own mod discovery runs.
@@ -141,33 +148,8 @@ public final class ModDiscoverer {
             } catch (URISyntaxException ignored) { }
         }
 
-        pullManifestMixinJars();
-
         LOGGER.info("Finished gathering {} mods...", modIdToFiles.keySet().size());
         LOGGER.debug("Mods gathered: {}", String.join(", ", modIdToFiles.keySet()));
-    }
-
-    private static void pullManifestMixinJars() {
-        if (manifestMixinJars.isEmpty()) {
-            return;
-        }
-        Set<File> alreadyOnClassLoader = new HashSet<>();
-        for (URL url : Launch.classLoader.getURLs()) {
-            try {
-                alreadyOnClassLoader.add(new File(url.toURI()));
-            } catch (URISyntaxException | IllegalArgumentException ignored) { }
-        }
-        for (File jar : manifestMixinJars) {
-            if (alreadyOnClassLoader.contains(jar)) {
-                continue;
-            }
-            try {
-                Launch.classLoader.addURL(jar.toURI().toURL());
-                LOGGER.info("Added {} to the classloader to process its mixin manifest attributes.", jar.getName());
-            } catch (Exception e) {
-                LOGGER.error("Failed to add {} to the classloader to process its mixin manifest attributes.", jar.getName(), e);
-            }
-        }
     }
 
     private static void scanDirectory(Gson gson, File dir) {
