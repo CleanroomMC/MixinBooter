@@ -22,8 +22,6 @@ import java.util.*;
 @IFMLLoadingPlugin.SortingIndex(Integer.MIN_VALUE + 1)
 public final class MixinBooterPlugin implements IFMLLoadingPlugin {
 
-    private static final String MIXIN_TWEAKER = "org.spongepowered.asm.launch.MixinTweaker";
-
     public MixinBooterPlugin() {
         this.initialize();
     }
@@ -71,7 +69,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
      * {@link zone.rong.mixinbooter.service.MixinServiceBootstrap}
      * and {@link zone.rong.mixinbooter.service.MixinBooterService} respectively.
      * Then the mixin subsystem is initialized - {@link MixinBootstrap#init()}
-     * {@link #injectMixinTweaker()} claims the MixinTweaker tweaker so we own the single instance LaunchWrapper creates.
      * Config is read straight afterwards.
      */
     private void initialize() {
@@ -82,9 +79,8 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         System.setProperty("mixin.service", "zone.rong.mixinbooter.service.MixinBooterService");
 
         MixinBootstrap.init();
-        this.injectMixinTweaker();
         ModDiscoverer.discover();
-        ModDiscoverer.rescueDroppedCoremods();
+        this.registerCoremodsRescuer();
         MixinBooterConfig.load();
     }
 
@@ -123,11 +119,17 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Launch.classLoader.addClassLoaderExclusion("zone.rong.mixinbooter.service.");
     }
 
+    /**
+     * Registers {@link zone.rong.mixinbooter.service.CoremodsRescuer} at the head of
+     * LaunchWrapper's tweak class list so it is constructed before {@code FMLInjectionAndSortingTweaker}.
+     * Coremods Forge dropped (those that declare a TweakClass alongside their FMLCorePlugin)
+     * are then loaded from a tweaker constructor, the only point at which the {@code Tweaks} list is safely writeable.
+     */
     @SuppressWarnings("unchecked")
-    private void injectMixinTweaker() {
+    private void registerCoremodsRescuer() {
         List<String> tweakClasses = (List<String>) Launch.blackboard.get("TweakClasses");
-        if (tweakClasses != null && !tweakClasses.contains(MIXIN_TWEAKER)) {
-            tweakClasses.add(MIXIN_TWEAKER);
+        if (tweakClasses != null) {
+            tweakClasses.add("zone.rong.mixinbooter.service.CoremodsRescuer");
         }
     }
 
