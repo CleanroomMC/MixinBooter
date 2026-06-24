@@ -9,6 +9,9 @@ import com.google.gson.JsonElement;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.relauncher.CoreModManager;
+import net.minecraftforge.fml.relauncher.libraries.Artifact;
+import net.minecraftforge.fml.relauncher.libraries.LibraryManager;
+import net.minecraftforge.fml.relauncher.libraries.Repository;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -18,7 +21,6 @@ import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.Constants.ManifestAttributes;
 import zone.rong.mixinbooter.Tags;
-import zone.rong.mixinbooter.util.Environment;
 
 import java.io.File;
 import java.io.IOException;
@@ -144,9 +146,11 @@ public final class ModDiscoverer {
      * Loads the {@code FMLCorePlugin} of every jar that also declares a {@code TweakClass},
      * which Forge's {@link CoreModManager#discoverCoreMods} skips.
      * The removed {@code MixinPlatformAgentFMLLegacy} re-injected these via {@code CoreModManager.loadCoreMod}
-     * and this replicates that. Must run from the plugin constructor, before
-     * {@code injectCoreModTweaks} drains {@code loadPlugins} into the tweak list. FML then injects and sorts
-     * the wrapper naturally and no manual co-initialization is required.
+     * and this replicates that. Must run from {@link CoremodsRescuer}'s constructor, a tweaker constructor being
+     * the only point at which the {@code Tweaks} list is safely writeable (a rescued coremod's constructor may add
+     * a tweaker to it, e.g. Sledgehammer). {@code CoremodsRescuer} is registered ahead of
+     * {@code FMLInjectionAndSortingTweaker} so these wrappers are present when {@code injectCoreModTweaks} drains
+     * {@code loadPlugins}, letting FML inject and sort them naturally with no manual co-initialization.
      */
     public static void rescueDroppedCoremods() {
         if (droppedCoremods.isEmpty()) {
@@ -196,8 +200,10 @@ public final class ModDiscoverer {
     }
 
     /**
-     * Walks the mods directory on disk (FML-style) and
-     * supplements with classpath entries already on the LaunchClassLoader.
+     * Gathers the same candidate set FML resolves in {@link CoreModManager#discoverCoreMods} (the flat
+     * {@code mods/} and {@code mods/<version>} directories, command-line {@code --mods}, and contained
+     * dependencies extracted into {@code memory_repo} or the libraries directory) and supplements it with
+     * classpath entries already on the LaunchClassLoader for the dev environment.
      * Must be called once before FML's own mod discovery runs.
      */
     public static void discover() {
@@ -213,10 +219,11 @@ public final class ModDiscoverer {
             gson = new GsonBuilder().create();
         }
 
-        // Primary: walk the mods directory on disk
-        File modsDir = new File("mods");
-        scanDirectory(gson, modsDir);
-        scanDirectory(gson, new File(modsDir, Environment.minecraftVersion()));
+        for (File candidate : gatherCandidates()) {
+            if (candidate.isFile() && candidate.getName().endsWith(".jar")) {
+                scanJar(gson, candidate);
+            }
+        }
 
         // Secondary: classloader URLs
         for (URL url : Launch.classLoader.getURLs()) {
@@ -239,17 +246,28 @@ public final class ModDiscoverer {
         return manifestMixinJars;
     }
 
-    private static void scanDirectory(Gson gson, File dir) {
-        if (!dir.isDirectory()) {
-            return;
+    /**
+     * Builds the candidate jar set FML resolves in {@link CoreModManager#discoverCoreMods}.
+     * The legacy candidates ({@link LibraryManager#gatherLegacyCanidates} which are from the {@code mods/} and
+     * {@code mods/<version>} directories plus command-line {@code --mods}) merged with the maven artifacts
+     * ({@link LibraryManager#flattenLists} which are the contained dependencies extracted into {@code memory_repo} or
+     * the libraries directory). Both are read-only and already invoked by FML before this runs, so querying them
+     * again here is safe.
+     */
+    private static List<File> gatherCandidates() {
+        File mcDir = Launch.minecraftHome != null ? Launch.minecraftHome : new File(".");
+        List<File> candidates = LibraryManager.gatherLegacyCanidates(mcDir);
+        for (Artifact artifact : LibraryManager.flattenLists(mcDir)) {
+            Artifact resolved = Repository.resolveAll(artifact);
+            if (resolved == null) {
+                continue;
+            }
+            File target = resolved.getFile();
+            if (target != null && !candidates.contains(target)) {
+                candidates.add(target);
+            }
         }
-        File[] jars = dir.listFiles(f -> f.isFile() && f.getName().endsWith(".jar"));
-        if (jars == null) {
-            return;
-        }
-        for (File jar : jars) {
-            scanJar(gson, jar);
-        }
+        return candidates;
     }
 
     private static void scanJar(Gson gson, File jar) {
@@ -265,8 +283,7 @@ public final class ModDiscoverer {
                 if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
                     manifestMixinJars.add(jar);
                 }
-                collectForceLoadAsMod(jar, attributes);
-                collectDroppedCoremod(jar, attributes);
+                resolveLegacyBehaviour(jar, attributes);
                 // OptiFine special-case
                 if ("optifine.OptiFineForgeTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
                     recordMod("optifine", jar);
@@ -361,30 +378,23 @@ public final class ModDiscoverer {
     }
 
     /**
-     * Records a jar that declares both a {@code TweakClass} and an {@code FMLCorePlugin}. Forge abandons the
-     * {@code FMLCorePlugin} the moment it sees a {@code TweakClass}, so the coremod is rescued later by
-     * {@link #rescueDroppedCoremods()}.
-     */
-    private static void collectDroppedCoremod(File jar, Attributes attributes) {
-        String coremod = attributes.getValue(FML_CORE_PLUGIN);
-        if (coremod != null && attributes.getValue(ManifestAttributes.TWEAKER) != null) {
-            droppedCoremods.put(jar.getAbsoluteFile(), coremod);
-        }
-    }
-
-    /**
      * Records a jar that requests Mixin's {@code ForceLoadAsMod} manifest key so it can be honored later by
      * {@link #applyForceLoadAsMod()}.
      * The actual mutation of Forge's coremod lists is deferred because this runs while
      * {@link CoreModManager#discoverCoreMods} is still populating relevant lists.
+     * And if the jar has declared both a {@code TweakClass} and an {@code FMLCorePlugin}, the {@code TweakClass}
+     * will be cascaded and the {@code FMLCorePlugin} will never be instantiated.
      */
-    private static void collectForceLoadAsMod(File jar, Attributes attributes) {
-        if (!"true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
-            return;
+    private static void resolveLegacyBehaviour(File jar, Attributes attributes) {
+        if ("true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
+            forceLoadAsModFiles.add(jar.getName());
+            if (attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null && !jar.getAbsolutePath().contains("deobfedDeps")) {
+                forceReparseableFiles.add(jar.getName());
+            }
         }
-        forceLoadAsModFiles.add(jar.getName());
-        if (attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null && !jar.getAbsolutePath().contains("deobfedDeps")) {
-            forceReparseableFiles.add(jar.getName());
+        String coremod = attributes.getValue(FML_CORE_PLUGIN);
+        if (coremod != null && attributes.getValue(ManifestAttributes.TWEAKER) != null) {
+            droppedCoremods.put(jar.getAbsoluteFile(), coremod);
         }
     }
 

@@ -2,7 +2,6 @@ package zone.rong.mixinbooter.service;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.spongepowered.asm.logging.Level;
-import zone.rong.mixinbooter.util.MixinBooterLogFile;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,7 +104,7 @@ public final class ClassLoadTracer implements IClassTransformer {
             if (target != null && this.traced.add(target)) {
                 Throwable trace = new Throwable(target);
                 trace.setStackTrace(trim(trace.getStackTrace()));
-                MixinBooterLogFile.get().write(Level.DEBUG, "ClassLoadTracer", "'" + target + "' is being loaded, load stack:", trace);
+                MixinBooterService.auditFile().write(Level.DEBUG, "ClassLoadTracer", "'" + target + "' is being loaded, load stack:", trace);
             }
         }
         return basicClass;

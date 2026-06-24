@@ -5,7 +5,7 @@ import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
 import zone.rong.mixinbooter.service.ClassLoadTracer;
-import zone.rong.mixinbooter.util.MixinBooterLogFile;
+import zone.rong.mixinbooter.service.MixinBooterService;
 
 import java.io.File;
 
@@ -44,7 +44,7 @@ public final class MixinBooterConfig {
             boolean auditTrail = config.getBoolean("auditTrail", Configuration.CATEGORY_GENERAL, true,
                     "Mirror mixin activity into logs/mixinbooter.log. Disable to skip writing that file entirely.");
             if (!auditTrail) {
-                System.setProperty(MixinBooterLogFile.ENABLED_PROPERTY, "false");
+                System.setProperty(MixinBooterService.AUDIT_PROPERTY, "false");
             }
 
             applyFlag(config, "verbose", "mixin.debug.verbose",

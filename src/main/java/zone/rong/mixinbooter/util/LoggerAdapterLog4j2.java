@@ -3,6 +3,7 @@ package zone.rong.mixinbooter.util;
 import org.apache.logging.log4j.LogManager;
 import org.spongepowered.asm.logging.Level;
 import org.spongepowered.asm.logging.LoggerAdapterAbstract;
+import org.spongepowered.asm.service.mojang.MixinAuditFile;
 
 public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
 
@@ -16,10 +17,12 @@ public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
     };
 
     private final org.apache.logging.log4j.Logger logger;
+    private final MixinAuditFile file;
 
-    public LoggerAdapterLog4j2(String name) {
+    public LoggerAdapterLog4j2(String name, MixinAuditFile file) {
         super(name);
         this.logger = LogManager.getLogger(name);
+        this.file = file;
     }
 
     @Override
@@ -30,31 +33,31 @@ public class LoggerAdapterLog4j2 extends LoggerAdapterAbstract {
     @Override
     public void catching(Level level, Throwable t) {
         this.logger.catching(LEVELS[level.ordinal()], t);
-        MixinBooterLogFile.get().write(level, this.getId(), "Catching " + t, t);
+        this.file.write(level, this.getId(), "Catching " + t, t);
     }
 
     @Override
     public void catching(Throwable t) {
         this.logger.catching(t);
-        MixinBooterLogFile.get().write(Level.WARN, this.getId(), "Catching " + t, t);
+        this.file.write(Level.WARN, this.getId(), "Catching " + t, t);
     }
 
     @Override
     public void log(Level level, String message, Object... params) {
         this.logger.log(LEVELS[level.ordinal()], message, params);
         LoggerAdapterAbstract.FormattedMessage formatted = new LoggerAdapterAbstract.FormattedMessage(message, params);
-        MixinBooterLogFile.get().write(level, this.getId(), formatted.getMessage(), formatted.getThrowable());
+        this.file.write(level, this.getId(), formatted.getMessage(), formatted.getThrowable());
     }
 
     @Override
     public void log(Level level, String message, Throwable t) {
         this.logger.log(LEVELS[level.ordinal()], message, t);
-        MixinBooterLogFile.get().write(level, this.getId(), message, t);
+        this.file.write(level, this.getId(), message, t);
     }
 
     @Override
     public <T extends Throwable> T throwing(T t) {
-        MixinBooterLogFile.get().write(Level.WARN, this.getId(), "Throwing " + t, t);
+        this.file.write(Level.WARN, this.getId(), "Throwing " + t, t);
         return this.logger.throwing(t);
     }
 
