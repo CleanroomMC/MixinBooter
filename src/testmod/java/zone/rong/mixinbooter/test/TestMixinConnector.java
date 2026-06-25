@@ -11,6 +11,9 @@ public class TestMixinConnector implements IMixinConnector {
     public void connect() {
         LogManager.getLogger(Tags.MOD_NAME + "|MixinConnectorTest").info("Success.");
         Mixins.addConfiguration("mixin.connector_test.json");
+        Mixins.addConfiguration("mixin.connector_preinit_test.json");
+        Mixins.addConfiguration("mixin.connector_init_test.json");
+        Mixins.addConfiguration("mixin.connector_default_test.json");
     }
 
 }

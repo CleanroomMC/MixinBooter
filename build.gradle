@@ -138,7 +138,7 @@ tasks.register('testmodJar', Jar) {
         attributes(
                 'FMLCorePlugin': 'zone.rong.mixinbooter.test.TestCoreMod',
                 'FMLCorePluginContainsFMLMod': 'true',
-                'MixinConfigs': 'mixin.manifest_test.json',
+                'MixinConfigs': 'mixin.manifest_test.json, mixin.manifest_preinit_test.json, mixin.manifest_init_test.json, mixin.manifest_default_test.json',
                 'MixinConnector': 'zone.rong.mixinbooter.test.TestMixinConnector'
         )
     }

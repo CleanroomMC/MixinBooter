@@ -1,0 +1,10 @@
+{
+  "package": "zone.rong.mixinbooter.test.mixin.connectorphase",
+  "target": "@env(DEFAULT)",
+  "required": true,
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ConnectorDefaultMixin"
+  ]
+}
