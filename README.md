@@ -1,7 +1,7 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [CleanMix 0.2.2 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.x)](https://github.com/CleanroomMC/CleanMix)
+- Current Mixin Version: [CleanMix 0.2.8 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
 
 - Current MixinExtra Version: [0.5.4](https://github.com/LlamaLad7/MixinExtras)
 
@@ -26,6 +26,7 @@
   - Allows traditional `MixinConfig` + `MixinConnector` manifest attribute entries to be fully involved in the ecosystem
   - Mod discovery for mixin owners, better `isModLoaded` checks
   - Suppresses Forge's *corrupt zip* warnings
+  - Phased out mixin "phases"
 
 ### For Developers ~ Getting Started:
 
@@ -76,6 +77,8 @@ public class MyMixinConnector implements IMixinConnector {
     
     @Override
     public void connect() {
+        // Check if mod is loaded before registering?
+        // Possible with zone.rong.mixinbooter.service.ModDiscoverer.isModPresent(String modId)
         Mixins.addConfiguration("mixins.mymod.json");
     }
     
