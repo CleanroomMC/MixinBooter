@@ -14,7 +14,6 @@ import org.spongepowered.asm.service.mojang.AbstractMixinServiceLaunchWrapper;
 import org.spongepowered.asm.service.mojang.MixinAuditFile;
 import zone.rong.mixinbooter.Tags;
 import zone.rong.mixinbooter.util.Environment;
-import zone.rong.mixinbooter.util.LoggerAdapterLog4j2;
 import zone.rong.mixinbooter.util.Srg2NotchRemapper;
 
 import java.io.File;
@@ -34,7 +33,7 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
 
     private boolean initialized;
 
-    /** The shared mixin log, also written to by {@link ClassLoadTracer} and the teeing {@link LoggerAdapterLog4j2}. */
+    /** The shared mixin log, also written to by {@link ClassLoadTracer} and the teeing {@link org.spongepowered.asm.service.mojang.Log4j2AuditingAdapter}. */
     public static MixinAuditFile auditFile() {
         return AUDIT_FILE;
     }
@@ -80,11 +79,6 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
         if (Environment.inDev()) { // RFG
             Mixins.addConfiguration("mixin.mixinbooter.init.json");
         }
-    }
-
-    @Override
-    protected ILogger createLogger(String name) {
-        return new LoggerAdapterLog4j2(name, AUDIT_FILE);
     }
 
     @Override
