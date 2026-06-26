@@ -28,7 +28,7 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
 
     public static final String AUDIT_PROPERTY = Tags.MOD_ID + ".auditTrail";
 
-    private static final String CLASS_LOAD_TRACER = "zone.rong.mixinbooter.service.ClassLoadTracer";
+
     private static final MixinAuditFile AUDIT_FILE = new MixinAuditFile(Tags.MOD_ID + ".log", AUDIT_PROPERTY);
 
     private boolean initialized;
@@ -60,8 +60,7 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
 
     @Override
     public void beginPhase() {
-        Launch.classLoader.registerTransformer(CLASS_LOAD_TRACER);
-        this.getTransformerProvider().addTransformerExclusion(CLASS_LOAD_TRACER);
+        this.getTransformerProvider().addTransformerExclusion("zone.rong.mixinbooter.service.ClassLoadTracer");
         super.beginPhase();
     }
 

@@ -73,7 +73,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
      */
     private void initialize() {
         this.injectSelfIntoAppClassLoader();
-        this.installClassLoaderExclusions();
+        this.installClassLoaderExclusionsAndTransformers();
+
+        MixinBooterConfig.load();
 
         System.setProperty("mixin.bootstrapService", "zone.rong.mixinbooter.service.MixinServiceBootstrap");
         System.setProperty("mixin.service", "zone.rong.mixinbooter.service.MixinBooterService");
@@ -81,7 +83,6 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         MixinBootstrap.init();
         ModDiscoverer.discover();
         this.registerCoremodsRescuer();
-        MixinBooterConfig.load();
     }
 
     /**
@@ -108,7 +109,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         }
     }
 
-    private void installClassLoaderExclusions() {
+    private void installClassLoaderExclusionsAndTransformers() {
         Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.launch.");
         Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.service.");
         Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.mixin.");
@@ -117,6 +118,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Launch.classLoader.addClassLoaderExclusion("org.spongepowered.asm.lib.");
         Launch.classLoader.addClassLoaderExclusion("org.objectweb.asm.");
         Launch.classLoader.addClassLoaderExclusion("zone.rong.mixinbooter.service.");
+        Launch.classLoader.registerTransformer("zone.rong.mixinbooter.service.ClassLoadTracer");
     }
 
     /**
