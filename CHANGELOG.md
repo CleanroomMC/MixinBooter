@@ -1,5 +1,30 @@
 # Changelog
 
+## [11.0] - 2026-06-27
+
+### Added
+- Allowing traditional `MixinConfigs` & `MixinConnector` way of registering mixins once again
+- Suppression of "corrupt zip" warnings from Forge when reading mods and parsing data
+- Mod discovery (properly done). Accessible via `ModDiscoverer`
+- Way to resolve mod ids in a more correct and explicit manner
+- Dedicated mixin logging output: `/logs/mixinbooter.log`
+- Configuration for various mixin flags and audit file
+- Class-loading now traceable, helps with certain mixins trying to mixin classes that are loaded too early, good way to debug this issue
+- Better testing within the workspace
+- Warnings of mods shading mixins into their own jar file
+- Documentation
+
+### Changed
+- CleanMix! Bridged the gap, CleanMix will be used in Cleanroom (as it updates soon tm)
+- Deprecated early/mixin loading stages, division is no longer present
+- Deprecated loader, hijacker interfaces
+- Included annotation processor dependencies for maven artifact
+- Better "mod is present" checks
+- Phasing out mixin "phases", configs gets immediately selected and processed
+
+### Removed
+- Explicit mod fixes
+
 ## [10.7] - 2025-09-30
 
 ### Changed
