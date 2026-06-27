@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   build:
@@ -19,7 +18,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          java-version: '25'
           distribution: 'zulu'
           cache: gradle
 
