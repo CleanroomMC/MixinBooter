@@ -134,7 +134,6 @@ public final class ModDiscoverer {
         List<String> reparseable = CoreModManager.getReparseableCoremods();
         for (String name : forceLoadAsModFiles) {
             ignored.remove(name);
-            LOGGER.warn("{} uses \"ForceLoadAsMod\" to be loaded as a mod from its coremod jar. This is legacy behaviour, it should be shipped as a normal mod.", name);
         }
         for (String name : forceReparseableFiles) {
             if (!reparseable.contains(name)) {
