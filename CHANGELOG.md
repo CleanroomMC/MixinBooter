@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.1] - 2026-07-01
+
+### Fixed
+- Compatibilities with older minecraft versions
+
+### Changed
+- To have more robust suppression of class reading errors presented by Forge
+
 ## [11.0] - 2026-06-27
 
 ### Added

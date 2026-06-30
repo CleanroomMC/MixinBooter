@@ -230,8 +230,6 @@ tasks.named('shadowJar') {
     manifest {
         def attribute_map = [:]
         attribute_map['FMLCorePlugin'] = coremod_plugin_name
-        attribute_map['FMLCorePluginContainsFMLMod'] = true
-        attribute_map['ForceLoadAsMod'] = project.gradle.startParameter.taskNames[0] == "build"
         attribute_map['Premain-Class'] = 'org.spongepowered.tools.agent.MixinAgent'
         attribute_map['Agent-Class'] = 'org.spongepowered.tools.agent.MixinAgent'
         attribute_map['Can-Redefine-Classes'] = true
