@@ -8,6 +8,7 @@ import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
+import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.service.ModDiscoverer;
 
@@ -119,6 +120,9 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         Launch.classLoader.addClassLoaderExclusion("org.objectweb.asm.");
         Launch.classLoader.addClassLoaderExclusion("zone.rong.mixinbooter.service.");
         Launch.classLoader.registerTransformer("zone.rong.mixinbooter.service.ClassLoadTracer");
+        if (!ASM.isAtLeastVersion(5, 1)) {
+            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.mixinextras.MixinExtrasFixer");
+        }
     }
 
     /**

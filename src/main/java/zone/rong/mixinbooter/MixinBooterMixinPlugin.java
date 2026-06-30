@@ -1,12 +1,10 @@
 package zone.rong.mixinbooter;
 
 import com.llamalad7.mixinextras.MixinExtrasBootstrap;
-import net.minecraft.launchwrapper.Launch;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.service.MixinService;
-import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.util.Environment;
 
 import java.util.List;
@@ -16,9 +14,6 @@ public class MixinBooterMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(String mixinPackage) {
-        if (!ASM.isAtLeastVersion(5, 1)) {
-            Launch.classLoader.registerTransformer("zone.rong.mixinbooter.fix.mixinextras.MixinExtrasFixer");
-        }
         MixinService.getService().getLogger(Tags.MOD_NAME).info("Initializing MixinExtras...");
         MixinExtrasBootstrap.init();
     }
