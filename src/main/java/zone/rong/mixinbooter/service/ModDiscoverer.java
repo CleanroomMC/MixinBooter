@@ -21,6 +21,7 @@ import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.Constants.ManifestAttributes;
 import zone.rong.mixinbooter.Tags;
+import zone.rong.mixinbooter.util.Environment;
 
 import java.io.File;
 import java.io.IOException;
@@ -256,15 +257,33 @@ public final class ModDiscoverer {
      */
     private static List<File> gatherCandidates() {
         File mcDir = Launch.minecraftHome != null ? Launch.minecraftHome : new File(".");
-        List<File> candidates = LibraryManager.gatherLegacyCanidates(mcDir);
-        for (Artifact artifact : LibraryManager.flattenLists(mcDir)) {
-            Artifact resolved = Repository.resolveAll(artifact);
-            if (resolved == null) {
-                continue;
+        if ("1.12.2".equals(Environment.minecraftVersion())) {
+            List<File> candidates = LibraryManager.gatherLegacyCanidates(mcDir);
+            for (Artifact artifact : LibraryManager.flattenLists(mcDir)) {
+                Artifact resolved = Repository.resolveAll(artifact);
+                if (resolved == null) {
+                    continue;
+                }
+                File target = resolved.getFile();
+                if (target != null && !candidates.contains(target)) {
+                    candidates.add(target);
+                }
             }
-            File target = resolved.getFile();
-            if (target != null && !candidates.contains(target)) {
-                candidates.add(target);
+            return candidates;
+        }
+        List<File> candidates = new ArrayList<>();
+        File modsDir = new File(mcDir, "mods");
+        if (modsDir.exists() && modsDir.isDirectory()) {
+            File[] mods = modsDir.listFiles();
+            if (mods != null) {
+                candidates.addAll(Arrays.asList(mods));
+            }
+        }
+        File versionDir = new File(modsDir, Environment.minecraftVersion());
+        if (versionDir.exists() && versionDir.isDirectory()) {
+            File[] mods = versionDir.listFiles();
+            if (mods != null) {
+                candidates.addAll(Arrays.asList(mods));
             }
         }
         return candidates;
