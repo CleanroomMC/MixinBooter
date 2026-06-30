@@ -2,6 +2,7 @@ package zone.rong.mixinbooter.fix;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class SuppressingClassReader extends ClassReader {
 
@@ -11,7 +12,15 @@ public class SuppressingClassReader extends ClassReader {
 
     @Override
     public void accept(ClassVisitor classVisitor, int flags) {
-        // NO-OP
+        classVisitor.visit(
+                Opcodes.V1_8,
+                Opcodes.ACC_PUBLIC,
+                "zone/rong/mixinbooter/fix/DummyClass",
+                null,
+                "java/lang/Object",
+                new String[0]
+        );
+        classVisitor.visitEnd();
     }
 
 }
