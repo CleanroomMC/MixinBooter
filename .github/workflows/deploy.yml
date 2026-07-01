@@ -71,10 +71,9 @@ jobs:
           game-version-filter: releases
           java: 8
           files: |
-            artifact/!(*-@(dev|sources|javadoc)).jar
-            artifact/*-@(dev).jar
-            artifact/*-@(sources).jar
-            artifact/*-@(javadoc).jar
+            build/libs/\!*.jar
+            build/libs/*-@(sources).jar
+            build/libs/*-@(javadoc).jar
 
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
