@@ -24,8 +24,8 @@ jobs:
       - name: Setup Java for build
         uses: actions/setup-java@v4
         with:
-          java-version: 21
-          distribution: temurin
+          java-version: 25
+          distribution: zulu
           cache: gradle
 
       - name: Grant Execute Permission
