@@ -1,0 +1,58 @@
+name: Runtime Test (1.8.9 & 1.12.2)
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - mc: "1.12.2"
+            include_testmod: true
+          - mc: "1.8.9"
+            include_testmod: false
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java for build
+        uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: zulu
+          cache: gradle
+
+      - name: Grant Execute Permission
+        run: chmod +x gradlew
+
+      - name: Build MixinBooter, testmod, and puremod
+        run: ./gradlew build testmodJar puremodJar --no-daemon
+
+      - name: Stage mods for test client
+        run: |
+          mkdir -p run/mods
+          # MixinBooter coremod (reobfuscated jar with ! prefix)
+          cp build/libs/'!'mixinbooter-*.jar run/mods/
+          # PureMod: tests ModDiscoverer pipeline, works on both 1.8.9 and 1.12.2
+          cp build/libs/mixinbooter-puremod-*.jar run/mods/
+          # TestMod only on 1.12.2: testmod's LateTestMixin requires JEI, and the build uses 1.12.2 MCP mappings
+          if [ "${{ matrix.include_testmod }}" = "true" ]; then
+            cp build/libs/mixinbooter-testmod-*.jar run/mods/
+          fi
+
+      - name: Run MC Test Client
+        uses: headlesshq/mc-runtime-test@4.4.0
+        with:
+          mc: ${{ matrix.mc }}
+          modloader: forge
+          regex: .*forge.*
+          mc-runtime-test: lexforge
+          java: 8
+          dummy-assets: true
+          headlessmc-command: --jvm "-Dfml.coreMods.load=zone.rong.mixinbooter.MixinBooterPlugin"
