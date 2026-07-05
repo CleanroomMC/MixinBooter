@@ -1,7 +1,7 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [CleanMix 0.2.9 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
+- Current Mixin Version: [CleanMix 0.4.1 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
 
 - Current MixinExtra Version: [0.5.4](https://github.com/LlamaLad7/MixinExtras)
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [11.2] - 2026-07-05
+
+### Fixed
+- #124, now MixinExtras won't crash in older Minecraft versions
+- #126, injects `CoremodRescuer` earlier in the tweakers list, helps mods using wrong APIs to still submit mixin configurations properly
+- Incompatibility with mods like VintageFix which errors due to an upstream regression for synthetic inner classes
+
+### Changed
+- Updated CleanMix to 0.4.1
+- Prefer reading `ForgeVersion` with reflection for the current Minecraft version (thanks to @ZZZank)
+
 ## [11.1] - 2026-07-01
 
 ### Fixed
