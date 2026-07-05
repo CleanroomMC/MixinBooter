@@ -135,7 +135,7 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     private void registerCoremodsRescuer() {
         List<String> tweakClasses = (List<String>) Launch.blackboard.get("TweakClasses");
         if (tweakClasses != null) {
-            tweakClasses.add("zone.rong.mixinbooter.service.CoremodsRescuer");
+            tweakClasses.add(0, "zone.rong.mixinbooter.service.CoremodsRescuer");
         }
     }
 
