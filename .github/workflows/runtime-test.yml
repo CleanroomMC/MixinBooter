@@ -55,4 +55,3 @@ jobs:
           mc-runtime-test: lexforge
           java: 8
           dummy-assets: true
-          headlessmc-command: --jvm "-Dfml.coreMods.load=zone.rong.mixinbooter.MixinBooterPlugin"
