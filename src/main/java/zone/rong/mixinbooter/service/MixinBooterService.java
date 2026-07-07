@@ -7,8 +7,6 @@ import org.spongepowered.asm.launch.platform.container.IContainerHandle;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
-import org.spongepowered.asm.mixin.extensibility.IRemapper;
-import org.spongepowered.asm.obfuscation.mapping.mcp.Srg2McpRemapper;
 import org.spongepowered.asm.obfuscation.mapping.remap.CleanroomRemapper;
 import org.spongepowered.asm.service.mojang.AbstractMixinServiceLaunchWrapper;
 import org.spongepowered.asm.service.mojang.MixinAuditFile;
@@ -27,7 +25,6 @@ import java.util.Set;
 public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
 
     public static final String AUDIT_PROPERTY = Tags.MOD_ID + ".auditTrail";
-
 
     private static final MixinAuditFile AUDIT_FILE = new MixinAuditFile(Tags.MOD_ID + ".log", AUDIT_PROPERTY);
 
@@ -71,10 +68,7 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
         }
         this.initialized = true;
         super.init();
-        IRemapper remapper = Environment.inDev() ?
-                new Srg2McpRemapper(MixinEnvironment.getDefaultEnvironment()) :
-                new CleanroomRemapper<>(new Srg2NotchRemapper());
-        MixinEnvironment.getDefaultEnvironment().getRemappers().add(remapper);
+        MixinEnvironment.getDefaultEnvironment().getRemappers().add(new CleanroomRemapper<>(new Srg2NotchRemapper()));
         if (Environment.inDev()) { // RFG
             Mixins.addConfiguration("mixin.mixinbooter.init.json");
         }
