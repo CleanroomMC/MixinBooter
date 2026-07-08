@@ -1,5 +1,16 @@
 # Changelog
 
+## [11.3] - 2026-07-08
+
+### Added
+- Warnings if mixins have somehow got no accessor targets
+- Exclusion of Mixin's launch package by default, may fix dev environment woes
+
+### Fixed
+- Concurrent modifications when mixin configurations are being registered and selected
+- Allow `IExtension` classes to passthrough and be in the same packages as mixins
+- Superclasses not being considered if they're interfaces
+
 ## [11.2] - 2026-07-05
 
 ### Fixed
