@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.4] - 2026-07-09
+
+### Fixed
+- Rescuing all coremods that have a TweakClass attribute, instead only help those that have MixinTweaker as the TweakClass
+
 ## [11.3] - 2026-07-08
 
 ### Added

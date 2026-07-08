@@ -50,6 +50,7 @@ public final class ModDiscoverer {
     private static final String FORCE_LOAD_AS_MOD = "ForceLoadAsMod";
     private static final String COREMOD_CONTAINS_FML_MOD = "FMLCorePluginContainsFMLMod";
     private static final String FML_CORE_PLUGIN = "FMLCorePlugin";
+    private static final String MIXIN_TWEAKER_CLASS = "org.spongepowered.asm.launch." + "MixinTweaker";
 
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
@@ -400,8 +401,9 @@ public final class ModDiscoverer {
      * {@link #applyForceLoadAsMod()}.
      * The actual mutation of Forge's coremod lists is deferred because this runs while
      * {@link CoreModManager#discoverCoreMods} is still populating relevant lists.
-     * And if the jar has declared both a {@code TweakClass} and an {@code FMLCorePlugin}, the {@code TweakClass}
-     * will be cascaded and the {@code FMLCorePlugin} will never be instantiated.
+     * And if the jar has declared {@link org.spongepowered.asm.launch.MixinTweaker} as the {@code TweakClass}
+     * and an {@code FMLCorePlugin}, the {@code TweakClass} will be cascaded
+     * and the {@code FMLCorePlugin} will never be instantiated.
      */
     private static void resolveLegacyBehaviour(File jar, Attributes attributes) {
         if ("true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
@@ -411,7 +413,7 @@ public final class ModDiscoverer {
             }
         }
         String coremod = attributes.getValue(FML_CORE_PLUGIN);
-        if (coremod != null && attributes.getValue(ManifestAttributes.TWEAKER) != null) {
+        if (coremod != null && MIXIN_TWEAKER_CLASS.equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
             droppedCoremods.put(jar.getAbsoluteFile(), coremod);
         }
     }
