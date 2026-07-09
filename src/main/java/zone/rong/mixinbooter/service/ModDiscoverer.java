@@ -17,6 +17,7 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.Constants.ManifestAttributes;
@@ -51,6 +52,7 @@ public final class ModDiscoverer {
     private static final String COREMOD_CONTAINS_FML_MOD = "FMLCorePluginContainsFMLMod";
     private static final String FML_CORE_PLUGIN = "FMLCorePlugin";
     private static final String MIXIN_TWEAKER_CLASS = "org.spongepowered.asm.launch." + "MixinTweaker";
+    private static final String TWEAK_CLASSES = "TweakClasses";
 
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
@@ -58,6 +60,7 @@ public final class ModDiscoverer {
     private static final Set<String> forceLoadAsModFiles = new HashSet<>();
     private static final Set<String> forceReparseableFiles = new HashSet<>();
     private static final Map<File, String> droppedCoremods = new LinkedHashMap<>();
+    private static final List<String> rescuedTweakClasses = new ArrayList<>();
 
     private static boolean discovered = false;
 
@@ -147,11 +150,10 @@ public final class ModDiscoverer {
      * Loads the {@code FMLCorePlugin} of every jar that also declares a {@code TweakClass},
      * which Forge's {@link CoreModManager#discoverCoreMods} skips.
      * The removed {@code MixinPlatformAgentFMLLegacy} re-injected these via {@code CoreModManager.loadCoreMod}
-     * and this replicates that. Must run from {@link CoremodsRescuer}'s constructor, a tweaker constructor being
-     * the only point at which the {@code Tweaks} list is safely writeable (a rescued coremod's constructor may add
-     * a tweaker to it, e.g. Sledgehammer). {@code CoremodsRescuer} is registered ahead of
-     * {@code FMLInjectionAndSortingTweaker} so these wrappers are present when {@code injectCoreModTweaks} drains
-     * {@code loadPlugins}, letting FML inject and sort them naturally with no manual co-initialization.
+     * and this replicates that. This must run from {@link CoremodsRescuer}'s constructor while LaunchWrapper is
+     * iterating {@code TweakClasses}, because rescued coremods such as Sledgehammer may add directly to
+     * {@code Tweaks}. Any {@code TweakClasses} added during rescue are captured and replayed later to avoid
+     * corrupting LaunchWrapper's active {@code TweakClasses} iterator.
      */
     public static void rescueDroppedCoremods() {
         if (droppedCoremods.isEmpty()) {
@@ -184,22 +186,59 @@ public final class ModDiscoverer {
                 LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName(), e);
             }
         }
-        for (Map.Entry<String, File> entry : coremods.entrySet()) {
-            String coremod = entry.getKey();
-            File jar = entry.getValue();
-            try {
-                Object wrapper = loadCoreMod.invoke(null, Launch.classLoader, coremod, jar);
-                if (wrapper != null) {
-                    LOGGER.warn("{} declares both a TweakClass and FMLCorePlugin. Forge skips the coremod in this case and {} was loaded manually. Ship it as a normal coremod without a TweakClass.", jar.getName(), coremod);
-                } else {
-                    LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName());
+
+        List<String> launchTweakClasses = getLaunchTweakClasses();
+        CapturedTweakClasses shadowTweakClasses = new CapturedTweakClasses(launchTweakClasses);
+        setLaunchTweakClasses(shadowTweakClasses);
+        try {
+            for (Map.Entry<String, File> entry : coremods.entrySet()) {
+                String coremod = entry.getKey();
+                File jar = entry.getValue();
+                try {
+                    Object wrapper = loadCoreMod.invoke(null, Launch.classLoader, coremod, jar);
+                    if (wrapper != null) {
+                        LOGGER.warn("{} declares both a TweakClass and FMLCorePlugin. Forge skips the coremod in this case and {} was loaded manually. Ship it as a normal coremod without a TweakClass.", jar.getName(), coremod);
+                    } else {
+                        LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName());
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName(), e);
                 }
-            } catch (Exception e) {
-                LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName(), e);
             }
+        } finally {
+            setLaunchTweakClasses(launchTweakClasses);
         }
+        rescuedTweakClasses.addAll(shadowTweakClasses.getCapturedTweakClasses());
     }
 
+    public static void flushRescuedTweakClasses() {
+        if (rescuedTweakClasses.isEmpty()) {
+            return;
+        }
+        List<String> tweakClasses = getLaunchTweakClasses();
+        if (tweakClasses == null) {
+            LOGGER.error("Unable to retrieve rescued tweak classes because LaunchWrapper's TweakClasses list is unavailable.");
+            rescuedTweakClasses.clear();
+            return;
+        }
+        for (String tweakClass : rescuedTweakClasses) {
+            if (!tweakClasses.contains(tweakClass)) {
+                LOGGER.warn("Retrieving tweak class {} added by a rescued coremod.", tweakClass);
+                tweakClasses.add(tweakClass);
+            }
+        }
+        rescuedTweakClasses.clear();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> getLaunchTweakClasses() {
+        return (List<String>) Launch.blackboard.get(TWEAK_CLASSES);
+    }
+
+    private static void setLaunchTweakClasses(Object tweakClasses) {
+        Launch.blackboard.put(TWEAK_CLASSES, tweakClasses);
+        GlobalProperties.put(GlobalProperties.Keys.of(TWEAK_CLASSES), tweakClasses);
+    }
     /**
      * Gathers the same candidate set FML resolves in {@link CoreModManager#discoverCoreMods} (the flat
      * {@code mods/} and {@code mods/<version>} directories, command-line {@code --mods}, and contained
@@ -415,6 +454,44 @@ public final class ModDiscoverer {
         String coremod = attributes.getValue(FML_CORE_PLUGIN);
         if (coremod != null && MIXIN_TWEAKER_CLASS.equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
             droppedCoremods.put(jar.getAbsoluteFile(), coremod);
+        }
+    }
+
+
+    private static final class CapturedTweakClasses extends ArrayList<String> {
+
+        private final List<String> capturedTweakClasses = new ArrayList<>();
+
+        private CapturedTweakClasses(List<String> tweakClasses) {
+            super(tweakClasses == null ? Collections.emptyList() : tweakClasses);
+        }
+
+        @Override
+        public boolean add(String tweakClass) {
+            this.capturedTweakClasses.add(tweakClass);
+            return super.add(tweakClass);
+        }
+
+        @Override
+        public void add(int index, String tweakClass) {
+            this.capturedTweakClasses.add(tweakClass);
+            super.add(index, tweakClass);
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends String> tweakClasses) {
+            this.capturedTweakClasses.addAll(tweakClasses);
+            return super.addAll(tweakClasses);
+        }
+
+        @Override
+        public boolean addAll(int index, Collection<? extends String> tweakClasses) {
+            this.capturedTweakClasses.addAll(tweakClasses);
+            return super.addAll(index, tweakClasses);
+        }
+
+        private List<String> getCapturedTweakClasses() {
+            return this.capturedTweakClasses;
         }
     }
 

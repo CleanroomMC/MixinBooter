@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.5] - 2026-07-09
+
+### Fixed
+- Old mods doing dumb things
+
 ## [11.4] - 2026-07-09
 
 ### Fixed

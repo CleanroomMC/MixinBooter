@@ -126,17 +126,14 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
     }
 
     /**
-     * Registers {@link zone.rong.mixinbooter.service.CoremodsRescuer} at the head of
-     * LaunchWrapper's tweak class list so it is constructed before {@code FMLInjectionAndSortingTweaker}.
-     * Coremods Forge dropped (those that declare a TweakClass alongside their FMLCorePlugin)
-     * are then loaded from a tweaker constructor, the only point at which the {@code Tweaks} list is safely writeable.
+     * Registers {@link zone.rong.mixinbooter.service.CoremodsRescuer} before Forge's injection tweaker.
+     * Its constructor runs while LaunchWrapper is processing TweakClasses, when rescued coremods may safely
+     * add to Tweaks, any TweakClasses they add are replayed later from the tweaker injection pass.
      */
     @SuppressWarnings("unchecked")
     private void registerCoremodsRescuer() {
         List<String> tweakClasses = (List<String>) Launch.blackboard.get("TweakClasses");
-        if (tweakClasses != null) {
-            tweakClasses.add(0, "zone.rong.mixinbooter.service.CoremodsRescuer");
-        }
+        tweakClasses.add(0, "zone.rong.mixinbooter.service.CoremodsRescuer");
     }
 
     private Collection<IEarlyMixinLoader> gatherEarlyLoaders(List coremodList) {

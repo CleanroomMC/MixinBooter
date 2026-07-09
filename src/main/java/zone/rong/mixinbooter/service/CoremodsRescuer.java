@@ -14,12 +14,11 @@ public class CoremodsRescuer implements ITweaker {
 
     @Override
     public void acceptOptions(List<String> args, File gameDir, File assetsDir, String profile) {
-
     }
 
     @Override
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
-
+        ModDiscoverer.flushRescuedTweakClasses();
     }
 
     @Override
