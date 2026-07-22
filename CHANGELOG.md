@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.6] - 2026-07-22
+
+### Changed
+- Updated CleanMix to 0.5.0, fixed mixins not loading in some mods
+
 ## [11.5] - 2026-07-09
 
 ### Fixed
