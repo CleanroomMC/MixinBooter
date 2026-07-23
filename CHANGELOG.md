@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.7] - 2026-07-23
+
+### Changed
+- Updated CleanMix to 0.5.1, accessors now eagerly load their targets
+
 ## [11.6] - 2026-07-22
 
 ### Changed
