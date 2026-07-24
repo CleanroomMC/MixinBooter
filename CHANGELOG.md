@@ -1,5 +1,16 @@
 # Changelog
 
+## [11.8] - 2026-07-24
+
+### Added
+- A new `@Compatibility` annotation, can be explicitly set to enact localized compatibility to replicate an older behaviour
+
+### Fixed
+- Compatibility with mods that relied on old injection/field initialization order behaviour
+
+### Changed
+- Updated CleanMix to 0.6.0
+
 ## [11.7] - 2026-07-23
 
 ### Changed
