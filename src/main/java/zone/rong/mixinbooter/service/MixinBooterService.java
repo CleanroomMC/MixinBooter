@@ -91,8 +91,19 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
 
     @Override
     public void beginPhase() {
+        InitPhaseTrigger.uninstall();
         this.getTransformerProvider().addTransformerExclusion("zone.rong.mixinbooter.service.ClassLoadTracer");
         super.beginPhase();
+    }
+
+    /**
+     * Advances to {@link MixinEnvironment.Phase#INIT INIT}, called by {@link InitPhaseTrigger} from within
+     * {@code FMLDeobfTweaker}. A no-op if the environment has already moved past it.
+     */
+    void gotoInitPhase() {
+        if (this.phaseTransitioner != null) {
+            this.phaseTransitioner.accept(MixinEnvironment.Phase.INIT);
+        }
     }
 
     @Override
@@ -141,6 +152,12 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
             } catch (IllegalArgumentException ignored) { }
         }
         return null;
+    }
+
+    @Override
+    public IContainerHandle getPrimaryContainer() {
+        InitPhaseTrigger.install();
+        return super.getPrimaryContainer();
     }
 
 }
