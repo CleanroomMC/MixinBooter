@@ -4,6 +4,7 @@ import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.spongepowered.asm.service.IClassTracker;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -81,7 +82,9 @@ final class ClassLoaderUtil implements IClassTracker {
     @SuppressWarnings("unchecked")
     private static <T> T getField(String fieldName) {
         try {
-            return (T) LaunchClassLoader.class.getDeclaredField(fieldName).get(Launch.classLoader);
+            Field field = LaunchClassLoader.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return (T) field.get(Launch.classLoader);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException("Unable to reflect into LaunchClassLoader", e);
         }
