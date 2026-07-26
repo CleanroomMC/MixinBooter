@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.10] - 2026-07-26
+
+### Fixed
+- Errors with `INIT` and `DEFAULT` mixins when being consumed by CleanMix too early
+
+### Changed
+- Update CleanMix to 0.7.0
+
 ## [11.9] - 2026-07-26
 
 ### Changed
