@@ -8,6 +8,10 @@ import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.obfuscation.mapping.remap.CleanroomRemapper;
+import org.spongepowered.asm.service.IClassBytecodeProvider;
+import org.spongepowered.asm.service.IClassProvider;
+import org.spongepowered.asm.service.IClassTracker;
+import org.spongepowered.asm.service.ITransformerProvider;
 import org.spongepowered.asm.service.mojang.AbstractMixinServiceLaunchWrapper;
 import org.spongepowered.asm.service.mojang.MixinAuditFile;
 import zone.rong.mixinbooter.Tags;
@@ -27,6 +31,11 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
     public static final String AUDIT_PROPERTY = Tags.MOD_ID + ".auditTrail";
 
     private static final MixinAuditFile AUDIT_FILE = new MixinAuditFile(Tags.MOD_ID + ".log", AUDIT_PROPERTY);
+
+    private final ClassProvider classProvider = new ClassProvider();
+    private final TransformerProvider transformerProvider = new TransformerProvider();
+    private final ClassLoaderUtil classLoaderUtil = new ClassLoaderUtil();
+    private final BytecodeProvider bytecodeProvider = new BytecodeProvider(this.transformerProvider, this.getReEntranceLock(), this.classLoaderUtil);
 
     private boolean initialized;
 
@@ -53,6 +62,31 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
     @Override
     protected MixinAuditFile createAuditLog() {
         return AUDIT_FILE;
+    }
+
+    @Override
+    public IClassProvider getClassProvider() {
+        return this.classProvider;
+    }
+
+    @Override
+    public IClassBytecodeProvider getBytecodeProvider() {
+        return this.bytecodeProvider;
+    }
+
+    @Override
+    public ITransformerProvider getTransformerProvider() {
+        return this.transformerProvider;
+    }
+
+    @Override
+    public IClassTracker getClassTracker() {
+        return this.classLoaderUtil;
+    }
+
+    @Override
+    protected void onRefresh() {
+        this.transformerProvider.refreshDelegatedTransformers();
     }
 
     @Override
