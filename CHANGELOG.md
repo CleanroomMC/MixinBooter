@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.9] - 2026-07-26
+
+### Changed
+- Update CleanMix to 0.6.1
+
 ## [11.8] - 2026-07-24
 
 ### Added
