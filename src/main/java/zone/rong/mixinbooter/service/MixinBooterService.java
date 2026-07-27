@@ -91,9 +91,10 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
 
     @Override
     public void beginPhase() {
-        InitPhaseTrigger.uninstall();
-        this.getTransformerProvider().addTransformerExclusion("zone.rong.mixinbooter.service.ClassLoadTracer");
         super.beginPhase();
+        if (MixinEnvironment.Phase.INIT.hasReached()) {
+            InitPhaseTrigger.uninstall();
+        }
     }
 
     /**
@@ -113,6 +114,7 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
         }
         this.initialized = true;
         super.init();
+        this.getTransformerProvider().addTransformerExclusion("zone.rong.mixinbooter.service.ClassLoadTracer");
         MixinEnvironment.getDefaultEnvironment().getRemappers().add(new CleanroomRemapper<>(new Srg2NotchRemapper()));
         if (Environment.inDev()) { // RFG
             Mixins.addConfiguration("mixin.mixinbooter.init.json");

@@ -45,14 +45,21 @@ public final class InitPhaseTrigger implements InvocationHandler {
         try {
             ClassLoader loader = Launch.classLoader.loadClass(DEOBF_TWEAKER).getClassLoader();
             Field field = Class.forName(FML_LOG, true, loader).getDeclaredField("log");
+
+            Field modifiers = Field.class.getDeclaredField("modifiers");
+            modifiers.setAccessible(true);
+            modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
             field.setAccessible(true);
+
             Logger delegate = (Logger) field.get(null);
-            if (delegate == null || Proxy.isProxyClass(delegate.getClass())) {
+            if (delegate == null) {
+                logger().warn("'{}#log' is null, the INIT phase will not begin until the DEFAULT transition.", FML_LOG);
                 return;
             }
             InitPhaseTrigger trigger = new InitPhaseTrigger(field, delegate);
             setStatic(field, Proxy.newProxyInstance(Logger.class.getClassLoader(), new Class<?>[] { Logger.class }, trigger));
             installed = trigger;
+            logger().debug("Hooked '{}#log' as defined by {}, the INIT phase will begin within FMLDeobfTweaker.", FML_LOG, loader);
         } catch (Throwable t) {
             logger().warn("Unable to hook '{}#log', the INIT phase will not begin until the DEFAULT transition.", FML_LOG, t);
         }
@@ -64,6 +71,10 @@ public final class InitPhaseTrigger implements InvocationHandler {
             return;
         }
         installed = null;
+        if (!trigger.fired) {
+            logger().warn("'{}' was never seen on '{}#log' ({}), so INIT-phase configs were only staged at the DEFAULT transition",
+                    MESSAGE, FML_LOG, trigger.delegate.getClass().getName());
+        }
         try {
             setStatic(trigger.field, trigger.delegate);
         } catch (Throwable t) {
@@ -77,6 +88,7 @@ public final class InitPhaseTrigger implements InvocationHandler {
             this.fired = true;
             IMixinService service = MixinService.getService();
             if (service instanceof MixinBooterService) {
+                logger().debug("'{}' reached, advancing the mixin environment to INIT.", MESSAGE);
                 ((MixinBooterService) service).gotoInitPhase();
             }
         }
@@ -87,13 +99,11 @@ public final class InitPhaseTrigger implements InvocationHandler {
         }
     }
 
-    private static void setStatic(Field field, Object value) {
-        try {
-            Field modifiers = Field.class.getDeclaredField("modifiers");
-            modifiers.setAccessible(true);
-            modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-            field.set(null, value);
-        } catch (Throwable ignored) { }
+    private static void setStatic(Field field, Object value) throws Throwable {
+        field.set(null, value);
+        if (field.get(null) != value) {
+            throw new IllegalStateException("Unable to write '" + field.getDeclaringClass().getName() + "#" + field.getName() + "'");
+        }
     }
 
     private static ILogger logger() {

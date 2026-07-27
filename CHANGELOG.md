@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.11] - 2026-07-27
+
+### Fixed
+- Fixed INIT phase transition failing silently
+
 ## [11.10] - 2026-07-26
 
 ### Fixed

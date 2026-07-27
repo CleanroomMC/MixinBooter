@@ -3,7 +3,7 @@
   "plugin": "zone.rong.mixinbooter.MixinBooterMixinPlugin",
   "required": true,
   "refmap": "mixins.mixinbooter.refmap.json",
-  "target": "@env(DEFAULT)",
+  "target": "@env(PREINIT)",
   "minVersion": "0.8",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
