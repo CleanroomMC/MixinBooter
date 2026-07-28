@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.12] - 2026-07-28
+
+### Changed
+- Updated MixinExtras to use our own fork
+
+### Fixed
+- Compatibility with mods that use older MixinExtras versions that load late
+
 ## [11.11] - 2026-07-27
 
 ### Fixed

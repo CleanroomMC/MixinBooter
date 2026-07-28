@@ -92,7 +92,7 @@ dependencies {
 
     def cleanmix = "com.cleanroommc:cleanmix:${cleanmix_version}"
     def cleanmix_thin = "com.cleanroommc:cleanmix:${cleanmix_version}:thin"
-    def mixinextras = "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
+    def mixinextras = "com.cleanroommc:mixinextras-common:${mixinextras_version}"
 
     mod (cleanmix_thin) {
         transitive = false

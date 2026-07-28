@@ -3,7 +3,7 @@
 
 - Current Mixin Version: [CleanMix 0.6.0 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
 
-- Current MixinExtra Version: [0.5.4](https://github.com/LlamaLad7/MixinExtras)
+- Current MixinExtra Version: [0.5.5 by CleanroomMC](https://github.com/CleanroomMC/MixinExtras)
 
 ### Pseudo-Changelog:
 
@@ -28,6 +28,8 @@
   - Suppresses Forge's *corrupt zip* warnings
   - Phased out mixin "phases"
 
+- As of 11.12, MixinBooter uses [CleanroomMC's own MixinExtras fork](https://github.com/CleanroomMC/MixinExtras)
+
 ### For Developers ~ Getting Started:
 
 1. Add CleanroomMC's repository and depend on MixinBooter's maven entry:
@@ -39,7 +41,7 @@ repositories {
 }
 
 dependencies {
-    def mixin = 'zone.rong:mixinbooter:11.11'
+    def mixin = 'zone.rong:mixinbooter:11.12'
     
     implementation (mixin) {
         transitive = false
