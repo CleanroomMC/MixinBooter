@@ -251,6 +251,8 @@ public final class ModDiscoverer {
             return;
         }
         discovered = true;
+
+        long startTime = System.currentTimeMillis();
         Gson gson;
         try {
             gson = new GsonBuilder().setLenient().create();
@@ -275,7 +277,7 @@ public final class ModDiscoverer {
             } catch (URISyntaxException ignored) { }
         }
 
-        LOGGER.info("Finished gathering {} mods...", modIdToFiles.keySet().size());
+        LOGGER.info("Finished gathering {} mods, took {} ms.", modIdToFiles.keySet().size(), System.currentTimeMillis() - startTime);
         LOGGER.debug("Mods gathered: {}", String.join(", ", modIdToFiles.keySet()));
     }
 
@@ -349,12 +351,13 @@ public final class ModDiscoverer {
                 }
             }
             ZipEntry entry = jarFile.getEntry("mcmod.info");
-            List<String> modIds = entry != null ? parseMcmodInfo(gson, jarFile.getInputStream(entry)) : Collections.emptyList();
-            if (modIds.isEmpty()) {
-                String modId = scanModAnnotation(jarFile);
-                if (modId != null) {
-                    modIds = Collections.singletonList(modId);
-                }
+            Set<String> modIds = new HashSet<>();
+            if (entry != null) {
+                parseMcmodInfo(gson, jarFile.getInputStream(entry), modIds);
+            }
+            String modAnnotationId = scanModAnnotation(jarFile);
+            if (modAnnotationId != null) {
+                modIds.add(modAnnotationId);
             }
             for (String modId : modIds) {
                 recordMod(modId, jar);
@@ -374,7 +377,7 @@ public final class ModDiscoverer {
     /**
      * Logs if a mod jar bundles its own Mixin engine of any fork variety.
      */
-    private static void checkIfJarBundlesMixin(File jar, JarFile jarFile, List<String> modIds) {
+    private static void checkIfJarBundlesMixin(File jar, JarFile jarFile, Set<String> modIds) {
         if (modIds.isEmpty() || modIds.contains("mixinbooter")) {
             return;
         }
@@ -383,9 +386,8 @@ public final class ModDiscoverer {
         }
     }
 
-    private static List<String> parseMcmodInfo(Gson gson, InputStream stream) {
+    private static void parseMcmodInfo(Gson gson, InputStream stream, Set<String> ids) {
         try {
-            List<String> ids = new ArrayList<>();
             JsonElement root = gson.fromJson(new InputStreamReader(stream, StandardCharsets.UTF_8), JsonElement.class);
             if (root.isJsonArray()) {
                 for (JsonElement element : root.getAsJsonArray()) {
@@ -400,19 +402,16 @@ public final class ModDiscoverer {
                     }
                 }
             }
-            return ids;
         } catch (Throwable t) {
             LOGGER.error("Failed to parse mcmod.info", t);
         } finally {
             IOUtils.closeQuietly(stream);
         }
-        return Collections.emptyList();
     }
 
     /**
      * Scans the jar's classes for the first {@code @Mod} annotation and returns its {@code modid}
-     * or {@code null} if none declares one. This is the fallback for mods that declare their id via
-     * the annotation rather than {@code mcmod.info}.
+     * or {@code null} if none declares one.
      * Reads bytecode only and unreadable entries are skipped, the walk stops at the first match.
      */
     private static String scanModAnnotation(JarFile jar) {
