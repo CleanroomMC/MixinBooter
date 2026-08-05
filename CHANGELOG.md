@@ -1,5 +1,15 @@
 # Changelog
 
+## [11.13] - 2026-08-05
+
+### Fixed
+- Parent and child mixins to reconciling properly, issue noted first in GroovyScript's Mixin for the Calculator mod
+
+### Changed
+- Updated CleanMix to 0.7.1
+- Always scan `@Mod` annotations (thanks @youyihj!)
+- Compressed logo size (thanks @RuiXuqi!)
+
 ## [11.12] - 2026-07-28
 
 ### Changed
