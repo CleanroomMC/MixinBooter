@@ -58,7 +58,7 @@ dependencies {
 
 (As of 11.0, early/late divide is no longer present, therefore IEarly/ILateMixinLoaders are deprecated)
 
-- **`MixinConfigs` manifest attribute**: no loader class needed. Add a space-separated list of your mixin configuration names to your jar's manifest. MixinBooter reads it straight from the jar's manifest and registers them.
+- **`MixinConfigs` manifest attribute**: no loader class needed. Add a comma-separated list of your mixin configuration names to your jar's manifest. MixinBooter reads it straight from the jar's manifest and registers them.
 - **`MixinConnector` manifest attribute**: register configs programmatically. Point it at a class implementing `org.spongepowered.asm.mixin.connect.IMixinConnector`, its `connect()` is called during boot, where you call `Mixins.addConfiguration(...)` yourself.
 
 Both manifest attributes are set on your jar task:
