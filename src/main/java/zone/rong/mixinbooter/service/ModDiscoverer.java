@@ -349,6 +349,14 @@ public final class ModDiscoverer {
                     recordMod("optifine", jar);
                     return;
                 }
+                if ("net.jan.moddirector.launchwrapper.ModDirectorTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER)) {
+                    recordMod("moddirector", jar);
+                    return;
+                }
+                if ("git.jbredwards.jsonpaintings.mod.asm.ASMHandler".equals(attributes.getValue("FMLCorePlugin")) {
+                    recordMod("jsonpaintings", jar);
+                    return;
+                }
             }
             ZipEntry entry = jarFile.getEntry("mcmod.info");
             Set<String> modIds = new HashSet<>();
