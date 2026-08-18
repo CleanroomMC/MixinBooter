@@ -138,6 +138,7 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
             }
             try {
                 Launch.classLoader.addURL(jar.toURI().toURL());
+                CoreModManager.getReparseableCoremods().add(jar.getName());
                 logger.info("Added {} to the classloader to process its mixin manifest attributes.", jar.getName());
             } catch (Exception e) {
                 logger.error("Failed to add {} to the classloader to process its mixin manifest attributes.", jar.getName(), e);
