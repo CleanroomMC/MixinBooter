@@ -349,11 +349,11 @@ public final class ModDiscoverer {
                     recordMod("optifine", jar);
                     return;
                 }
-                if ("net.jan.moddirector.launchwrapper.ModDirectorTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER)) {
+                if ("net.jan.moddirector.launchwrapper.ModDirectorTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
                     recordMod("moddirector", jar);
                     return;
                 }
-                if ("git.jbredwards.jsonpaintings.mod.asm.ASMHandler".equals(attributes.getValue("FMLCorePlugin")) {
+                if ("git.jbredwards.jsonpaintings.mod.asm.ASMHandler".equals(attributes.getValue(FML_CORE_PLUGIN))) {
                     recordMod("jsonpaintings", jar);
                     return;
                 }
