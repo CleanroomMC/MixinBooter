@@ -1,5 +1,14 @@
 # Changelog
 
+## [11.14] - 2026-08-18
+
+### Fixed
+- ModDirector/FileDirectory and JsonPaintings mods not being properly discovered
+- Certain mods being recognized twice for discovery
+
+### Changed
+- Updated CleanMix to 0.7.2
+
 ## [11.13] - 2026-08-05
 
 ### Fixed
