@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.15] - 2026-08-21
+
+### Fixed
+- Compatibility with ReplayMod, as it depended on an erroneous behaviour
+
 ## [11.14] - 2026-08-18
 
 ### Fixed

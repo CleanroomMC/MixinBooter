@@ -51,9 +51,7 @@ public final class ModDiscoverer {
     private static final String FORCE_LOAD_AS_MOD = "ForceLoadAsMod";
     private static final String COREMOD_CONTAINS_FML_MOD = "FMLCorePluginContainsFMLMod";
     private static final String FML_CORE_PLUGIN = "FMLCorePlugin";
-    private static final String MIXIN_TWEAKER_CLASS = "org.spongepowered.asm.launch." + "MixinTweaker";
     private static final String TWEAK_CLASSES = "TweakClasses";
-
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
     private static final Set<File> manifestMixinJars = new HashSet<>();
@@ -61,6 +59,10 @@ public final class ModDiscoverer {
     private static final Set<String> forceReparseableFiles = new HashSet<>();
     private static final Map<File, String> droppedCoremods = new LinkedHashMap<>();
     private static final List<String> rescuedTweakClasses = new ArrayList<>();
+    private static final Collection<String> ALLOWED_TWEAKERS = Arrays.asList(
+            "org.spongepowered.asm.launch.MixinTweaker",
+            "com.replaymod.core.tweaker.ReplayModTweaker"
+    );
 
     private static boolean discovered = false;
 
@@ -447,9 +449,9 @@ public final class ModDiscoverer {
      * {@link #applyForceLoadAsMod()}.
      * The actual mutation of Forge's coremod lists is deferred because this runs while
      * {@link CoreModManager#discoverCoreMods} is still populating relevant lists.
-     * And if the jar has declared {@link org.spongepowered.asm.launch.MixinTweaker} as the {@code TweakClass}
-     * and an {@code FMLCorePlugin}, the {@code TweakClass} will be cascaded
-     * and the {@code FMLCorePlugin} will never be instantiated.
+     * And if the jar has declared a Mixin bootstrap {@code TweakClass} and an {@code FMLCorePlugin},
+     * the {@code TweakClass} will be cascaded and the {@code FMLCorePlugin} will never be instantiated.
+     * ReplayMod uses its own bootstrap tweaker but relies on its coremod to remove the jar from Forge's ignored list.
      */
     private static void resolveLegacyBehaviour(File jar, Attributes attributes) {
         if ("true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
@@ -459,7 +461,8 @@ public final class ModDiscoverer {
             }
         }
         String coremod = attributes.getValue(FML_CORE_PLUGIN);
-        if (coremod != null && MIXIN_TWEAKER_CLASS.equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
+        String tweaker = attributes.getValue(ManifestAttributes.TWEAKER);
+        if (coremod != null && ALLOWED_TWEAKERS.contains(tweaker)) {
             droppedCoremods.put(jar.getAbsoluteFile(), coremod);
         }
     }
