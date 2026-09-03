@@ -265,7 +265,7 @@ public final class ModDiscoverer {
 
         for (File candidate : gatherCandidates()) {
             if (candidate.isFile() && candidate.getName().endsWith(".jar")) {
-                scanJar(gson, candidate);
+                scanJar(gson, candidate, true);
             }
         }
 
@@ -274,7 +274,7 @@ public final class ModDiscoverer {
             try {
                 File file = new File(url.toURI());
                 if (file.isFile() && file.getName().endsWith(".jar") && !fileToModIds.containsKey(file)) {
-                    scanJar(gson, file);
+                    scanJar(gson, file, false);
                 }
             } catch (URISyntaxException ignored) { }
         }
@@ -332,7 +332,7 @@ public final class ModDiscoverer {
         return candidates;
     }
 
-    private static void scanJar(Gson gson, File jar) {
+    private static void scanJar(Gson gson, File jar, boolean modDirCandidate) {
         try (JarFile jarFile = new JarFile(jar)) {
             Manifest manifest = jarFile.getManifest();
             if (manifest != null) {
@@ -345,7 +345,7 @@ public final class ModDiscoverer {
                 if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
                     manifestMixinJars.add(jar);
                 }
-                resolveLegacyBehaviour(jar, attributes);
+                resolveLegacyBehaviour(jar, attributes, modDirCandidate);
                 // OptiFine special-case
                 if ("optifine.OptiFineForgeTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
                     recordMod("optifine", jar);
@@ -453,10 +453,10 @@ public final class ModDiscoverer {
      * the {@code TweakClass} will be cascaded and the {@code FMLCorePlugin} will never be instantiated.
      * ReplayMod uses its own bootstrap tweaker but relies on its coremod to remove the jar from Forge's ignored list.
      */
-    private static void resolveLegacyBehaviour(File jar, Attributes attributes) {
+    private static void resolveLegacyBehaviour(File jar, Attributes attributes, boolean modDirCandidate) {
         if ("true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
             forceLoadAsModFiles.add(jar.getName());
-            if (attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null && !jar.getAbsolutePath().contains("deobfedDeps")) {
+            if (modDirCandidate && attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null) {
                 forceReparseableFiles.add(jar.getName());
             }
         }

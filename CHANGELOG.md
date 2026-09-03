@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.16] - 2026-09-03
+
+### Fixed
+- Mods on the dev classpath not being considered during mod discovery
+
 ## [11.15] - 2026-08-21
 
 ### Fixed
