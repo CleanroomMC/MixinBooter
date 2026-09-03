@@ -55,6 +55,7 @@ public final class ModDiscoverer {
     private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
     private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
     private static final Set<File> manifestMixinJars = new HashSet<>();
+    private static final Set<File> manifestMixinModDirJars = new HashSet<>();
     private static final Set<String> forceLoadAsModFiles = new HashSet<>();
     private static final Set<String> forceReparseableFiles = new HashSet<>();
     private static final Map<File, String> droppedCoremods = new LinkedHashMap<>();
@@ -291,6 +292,14 @@ public final class ModDiscoverer {
     }
 
     /**
+     * Internal usage, whether the given manifest mixin jar was gathered as a mods-folder
+     * (or maven artifact) candidate rather than purely from the dev classloader.
+     */
+    static boolean isModDirMixinJar(File jar) {
+        return manifestMixinModDirJars.contains(jar);
+    }
+
+    /**
      * Builds the candidate jar set FML resolves in {@link CoreModManager#discoverCoreMods}.
      * The legacy candidates ({@link LibraryManager#gatherLegacyCanidates} which are from the {@code mods/} and
      * {@code mods/<version>} directories plus command-line {@code --mods}) merged with the maven artifacts
@@ -344,6 +353,9 @@ public final class ModDiscoverer {
                 }
                 if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
                     manifestMixinJars.add(jar);
+                    if (modDirCandidate) {
+                        manifestMixinModDirJars.add(jar);
+                    }
                 }
                 resolveLegacyBehaviour(jar, attributes, modDirCandidate);
                 // OptiFine special-case

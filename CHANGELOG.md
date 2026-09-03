@@ -1,5 +1,10 @@
 # Changelog
 
+## [11.17] - 2026-09-03
+
+### Fixed
+- Dev classpath only mixin jars being hidden from mod discovery via reparseable coremods
+
 ## [11.16] - 2026-09-03
 
 ### Fixed
