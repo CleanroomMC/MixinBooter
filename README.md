@@ -1,7 +1,7 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [CleanMix 0.7.2 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
+- Current Mixin Version: [CleanMix 0.7.3 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
 
 - Current MixinExtra Version: [0.5.5 by CleanroomMC](https://github.com/CleanroomMC/MixinExtras)
 
@@ -41,7 +41,7 @@ repositories {
 }
 
 dependencies {
-    def mixin = 'zone.rong:mixinbooter:11.17'
+    def mixin = 'zone.rong:mixinbooter:11.18'
     
     implementation (mixin) {
         transitive = false

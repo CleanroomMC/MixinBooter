@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.18] - 2026-10-12
+
+### Fixed
+- Crash in dev when calling some classes earlier, hardened classloader isolation
+
+### Changed
+- Detection widened for development environments for those using other gradle plugins
+
 ## [11.17] - 2026-09-03
 
 ### Fixed
