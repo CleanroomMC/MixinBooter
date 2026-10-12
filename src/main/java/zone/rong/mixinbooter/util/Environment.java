@@ -8,7 +8,7 @@ import java.util.List;
 
 public class Environment {
 
-    private static final boolean inDev = System.getProperty("sun.java.command", "").contains("GradleStart");
+    private static final boolean inDev = $inDev();
     private static final String side, mcVersion;
 
     /**
@@ -58,6 +58,10 @@ public class Environment {
             }
         }
         mcVersion = mcVersion0;
+    }
+
+    private static boolean $inDev() {
+        return System.getProperty("sun.java.command", "").contains("GradleStart") || System.getProperty("net.minecraftforge.gradle.GradleStart.srg.srg-mcp") != null;
     }
 
 }
