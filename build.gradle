@@ -32,6 +32,14 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
 }
 
+// Java 15+ javadoc reads a line starting with @ inside {@code} as code, where Java 8's reads it as a block tag
+tasks.named('javadoc', Javadoc) {
+    javadocTool = javaToolchains.javadocToolFor {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.AZUL
+    }
+}
+
 minecraft {
     mcVersion = '1.12.2'
     extraRunJvmArguments.addAll([
@@ -62,9 +70,13 @@ configurations {
 }
 
 sourceSets {
-    testmod {
+    // Only the mod jar ships these, mods developed against MixinBooter never compile against them
+    fermium {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    testmod {
+        compileClasspath += sourceSets.main.output + sourceSets.fermium.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.fermium.output + sourceSets.main.runtimeClasspath
     }
     puremod {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
@@ -173,7 +185,7 @@ tasks.register('runTestClient', RunMinecraftTask, Distribution.CLIENT).configure
     description 'Runs the dev client with the testmod as a real mod jar in testmod/run/mods'
 
     def runClientProvider = tasks.named('runClient', RunMinecraftTask)
-    classpath = files({ runClientProvider.get().classpath })
+    classpath = files({ runClientProvider.get().classpath }) + sourceSets.fermium.output
     mainClass.set(runClientProvider.flatMap { it.mainClass })
     tweakClasses.set(runClientProvider.flatMap { it.tweakClasses })
     username.set(runClientProvider.flatMap { it.username })
@@ -240,8 +252,22 @@ tasks.named('shadowJar') {
     }
 }
 
+tasks.register('modJar', Jar) {
+    group 'build'
+    def shadowJar = tasks.named('shadowJar', Jar)
+    dependsOn shadowJar
+    archiveClassifier.set('mod')
+    from(zipTree(shadowJar.flatMap { it.archiveFile })) {
+        exclude 'META-INF/MANIFEST.MF'
+    }
+    from sourceSets.fermium.output
+    manifest {
+        from shadowJar.get().manifest
+    }
+}
+
 tasks.named('reobfJar').configure {
-    inputJar.set(tasks.named('shadowJar').flatMap { it.archiveFile })
+    inputJar.set(tasks.named('modJar', Jar).flatMap { it.archiveFile })
     archiveBaseName.set("!${project.base.archivesName.get()}")
 }
 

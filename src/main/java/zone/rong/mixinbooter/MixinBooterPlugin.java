@@ -9,8 +9,10 @@ import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.asm.ASM;
+import zone.rong.mixinbooter.util.ConditionalMixin;
 import zone.rong.mixinbooter.util.Environment;
 import zone.rong.mixinbooter.service.ModDiscoverer;
+import zone.rong.mixinbooter.util.MixinConfiguration;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -54,10 +56,19 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         if (coremodList instanceof List) {
             Collection<IEarlyMixinLoader> earlyLoaders = this.gatherEarlyLoaders((List) coremodList);
             this.loadEarlyLoaders(earlyLoaders);
+            // Only the mod jar ships FB support
+            try {
+                Class.forName("zone.rong.mixinbooter.fb.FBMod").getMethod("applyEarly").invoke(null);
+            } catch (ClassNotFoundException ignored) {
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("Failed to apply fermiumbooter support", e);
+            }
+            this.applyMixinConfigurations();
         } else {
             throw new RuntimeException("Blackboard property 'coremodList' must be of type List, early loaders were not able to be gathered");
         }
         MixinBootstrap.getPlatform().inject();
+        ModDiscoverer.flushCrashes();
     }
 
     /**
@@ -181,6 +192,40 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
                 }
             } catch (Throwable t) {
                 logger.error("Failed to execute early loader [{}].", queuedLoader.getClass().getName(), t);
+            }
+        }
+    }
+
+    // Runs here, as the mod classes and the annotation have to come from the same classloader
+    private void applyMixinConfigurations() {
+        for (String className : ModDiscoverer.mixinConfigurationClasses()) {
+            Class<?> config;
+            try {
+                config = Class.forName(className, true, Launch.classLoader);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Unable to load " + className + " for its mixin configurations", e);
+            }
+            for (Field field : config.getFields()) {
+                MixinConfiguration configuration = field.getAnnotation(MixinConfiguration.class);
+                if (configuration == null) {
+                    continue;
+                }
+                ConditionalMixin conditional = ConditionalMixin.of(configuration.name()).option(config, field.getName());
+                for (MixinConfiguration.Dependency dependency : configuration.depends()) {
+                    conditional.requires(dependency.modid());
+                    if (!dependency.version().isEmpty()) {
+                        conditional.version(dependency.version());
+                    }
+                    if (!dependency.reason().isEmpty()) {
+                        conditional.because(dependency.reason());
+                    }
+                    if (dependency.crash()) {
+                        conditional.orCrash();
+                    } else {
+                        conditional.orWarn();
+                    }
+                }
+                conditional.register();
             }
         }
     }

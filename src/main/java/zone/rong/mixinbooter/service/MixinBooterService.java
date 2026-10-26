@@ -124,12 +124,12 @@ public class MixinBooterService extends AbstractMixinServiceLaunchWrapper {
     @Override
     public Collection<IContainerHandle> getMixinContainers() {
         List<IContainerHandle> containers = new ArrayList<>();
-        Set<File> jars = ModDiscoverer.manifestMixinJars();
+        List<File> jars = ModDiscoverer.manifestMixinJars();
         if (jars.isEmpty()) {
             return containers;
         }
         ILogger logger = getLogger(Tags.MOD_NAME);
-        Set<String> existingJars = new HashSet<>(CoreModManager.getIgnoredMods());
+        Set<String> existingJars = new HashSet<>(ModDiscoverer.getIgnoredMods());
         existingJars.addAll(CoreModManager.getReparseableCoremods());
         for (File jar : jars) {
             containers.add(new ContainerHandleURI(jar.toURI()));

@@ -1,13 +1,15 @@
 package zone.rong.mixinbooter.service;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
+import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
+import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
+import net.minecraftforge.fml.common.versioning.VersionRange;
 import net.minecraftforge.fml.relauncher.CoreModManager;
 import net.minecraftforge.fml.relauncher.libraries.Artifact;
 import net.minecraftforge.fml.relauncher.libraries.LibraryManager;
@@ -16,6 +18,7 @@ import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.logging.ILogger;
@@ -52,20 +55,28 @@ public final class ModDiscoverer {
     private static final String COREMOD_CONTAINS_FML_MOD = "FMLCorePluginContainsFMLMod";
     private static final String FML_CORE_PLUGIN = "FMLCorePlugin";
     private static final String TWEAK_CLASSES = "TweakClasses";
-    private static final SetMultimap<String, File> modIdToFiles = HashMultimap.create();
-    private static final SetMultimap<File, String> fileToModIds = LinkedHashMultimap.create();
-    private static final Set<File> manifestMixinJars = new HashSet<>();
-    private static final Set<File> manifestMixinModDirJars = new HashSet<>();
-    private static final Set<String> forceLoadAsModFiles = new HashSet<>();
-    private static final Set<String> forceReparseableFiles = new HashSet<>();
-    private static final Map<File, String> droppedCoremods = new LinkedHashMap<>();
+    private static final Map<String, Mod> mods = new HashMap<>();
+    // Every scanned jar by absolute file, in scan order so dropped coremods are rescued in the order Forge found them
+    private static final Map<File, Jar> jars = new LinkedHashMap<>();
+    // Jar names to un-ignore, mapped to whether they also have to be reparsed
+    private static final Map<String, Boolean> forceLoadAsModFiles = new HashMap<>();
     private static final List<String> rescuedTweakClasses = new ArrayList<>();
     private static final Collection<String> ALLOWED_TWEAKERS = Arrays.asList(
             "org.spongepowered.asm.launch.MixinTweaker",
             "com.replaymod.core.tweaker.ReplayModTweaker"
     );
-
+    private static final String[] SHADED_LIBRARIES = {
+            "org/spongepowered/", "com/llamalad7/", "org/objectweb/", "com/google/", "it/unimi/", "kotlin/", "scala/"
+    };
+    private static final byte[][] ANNOTATIONS = { ascii(ClassScanner.MOD_ANNOTATION), ascii(ClassScanner.MIXIN_CONFIGURATION) };
+    // Only the mod jar ships FB support, which supersedes the standalone mod on 1.12.2
+    private static final boolean FB_SUPPORT = "1.12.2".equals(Environment.minecraftVersion()) &&
+            ModDiscoverer.class.getClassLoader().getResource("zone/rong/mixinbooter/fb/FBMod.class") != null;
     private static boolean discovered = false;
+    // Mixin connectors have their exceptions swallowed, so crashes wait until every connector has run
+    private static List<String> crashes = new ArrayList<>();
+    // Reused for every class read during discovery
+    private static byte[] classBuffer;
 
     private ModDiscoverer() { }
 
@@ -76,7 +87,58 @@ public final class ModDiscoverer {
      * @return {@code true} if at least one scanned jar declares the id
      */
     public static boolean isModPresent(String modId) {
-        return modIdToFiles.containsKey(modId);
+        return mods.containsKey(modId);
+    }
+
+    /**
+     * @return the mod's name, from {@code @Mod} or else {@code mcmod.info}, or {@code null} if unknown
+     */
+    public static String getModName(String modId) {
+        Mod mod = mods.get(modId);
+        return mod == null ? null : mod.name;
+    }
+
+    /**
+     * @return the mod's version, from {@code @Mod} or else {@code mcmod.info}, or {@code null} if unknown
+     */
+    public static String getModVersion(String modId) {
+        Mod mod = mods.get(modId);
+        return mod == null ? null : mod.version;
+    }
+
+    /**
+     * Returns whether the given mod is present under exactly the given name, to tell apart forks sharing a mod id.
+     * The {@code @Mod} name is preferred over the {@code mcmod.info} name.
+     *
+     * @param modId the mod id to test
+     * @param name  the expected name
+     * @return {@code true} if the mod is present and named exactly so
+     */
+    public static boolean isModNamed(String modId, String name) {
+        return name != null && name.equals(getModName(modId));
+    }
+
+    /**
+     * Returns whether the given mod is present with a version in the given range.
+     * The {@code @Mod} version is preferred over the {@code mcmod.info} version.
+     *
+     * @param modId the mod id to test
+     * @param range a range in the same format as {@code @Mod(dependencies = ...)} such as {@code [1.2,2.0)}, or an exact version
+     * @return {@code true} if the mod is present and its version is in range, {@code false} if the range is invalid
+     */
+    public static boolean isModVersionInRange(String modId, String range) {
+        String version = getModVersion(modId);
+        if (version == null || range == null) {
+            return false;
+        }
+        if (range.equals(version)) {
+            return true;
+        }
+        try {
+            return VersionRange.createFromVersionSpec(range).containsVersion(new DefaultArtifactVersion(version));
+        } catch (InvalidVersionSpecificationException e) {
+            return false;
+        }
     }
 
     /**
@@ -85,7 +147,7 @@ public final class ModDiscoverer {
      * @return an unmodifiable view of all present mod ids
      */
     public static Set<String> getPresentMods() {
-        return Collections.unmodifiableSet(modIdToFiles.keySet());
+        return Collections.unmodifiableSet(mods.keySet());
     }
 
     /**
@@ -96,7 +158,8 @@ public final class ModDiscoverer {
      * @return the jars declaring that mod id (empty if none)
      */
     public static Set<File> getModSources(String modId) {
-        return Collections.unmodifiableSet(modIdToFiles.get(modId));
+        Mod mod = mods.get(modId);
+        return mod == null ? Collections.emptySet() : Collections.unmodifiableSet(mod.sources);
     }
 
     /**
@@ -121,7 +184,8 @@ public final class ModDiscoverer {
      * @return the mod ids the jar declares (empty if none)
      */
     public static Set<String> getModsFromSource(File source) {
-        return Collections.unmodifiableSet(fileToModIds.get(source.getAbsoluteFile()));
+        Jar jar = jars.get(source.getAbsoluteFile());
+        return jar == null ? Collections.emptySet() : Collections.unmodifiableSet(jar.modIds);
     }
 
     /**
@@ -137,13 +201,12 @@ public final class ModDiscoverer {
         if (forceLoadAsModFiles.isEmpty()) {
             return;
         }
-        List<String> ignored = CoreModManager.getIgnoredMods();
+        List<String> ignored = getIgnoredMods();
         List<String> reparseable = CoreModManager.getReparseableCoremods();
-        for (String name : forceLoadAsModFiles) {
+        for (Map.Entry<String, Boolean> entry : forceLoadAsModFiles.entrySet()) {
+            String name = entry.getKey();
             ignored.remove(name);
-        }
-        for (String name : forceReparseableFiles) {
-            if (!reparseable.contains(name)) {
+            if (entry.getValue() && !reparseable.contains(name)) {
                 reparseable.add(name);
             }
         }
@@ -159,7 +222,14 @@ public final class ModDiscoverer {
      * corrupting LaunchWrapper's active {@code TweakClasses} iterator.
      */
     public static void rescueDroppedCoremods() {
-        if (droppedCoremods.isEmpty()) {
+        Map<String, File> coremods = new LinkedHashMap<>();
+        for (Map.Entry<File, Jar> entry : jars.entrySet()) {
+            String coremod = entry.getValue().droppedCoremod;
+            if (coremod != null) {
+                coremods.putIfAbsent(coremod, entry.getKey());
+            }
+        }
+        if (coremods.isEmpty()) {
             return;
         }
         Method loadCoreMod;
@@ -175,18 +245,14 @@ public final class ModDiscoverer {
             LOGGER.error("Unable to access crucial internals. Coremods declared alongside a TweakClass will not be loaded.", t);
             return;
         }
-        Map<String, File> coremods = new HashMap<>();
-        for (Map.Entry<File, String> entry : droppedCoremods.entrySet()) {
-            File jar = entry.getKey();
-            String coremod = entry.getValue();
-            if (coremods.containsKey(coremod)) {
-                continue;
-            }
+        Iterator<Map.Entry<String, File>> iterator = coremods.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, File> entry = iterator.next();
             try {
-                Launch.classLoader.addURL(jar.toURI().toURL());
-                coremods.put(coremod, jar);
+                Launch.classLoader.addURL(entry.getValue().toURI().toURL());
             } catch (MalformedURLException e) {
-                LOGGER.error("Failed to manually load coremod {} from {}.", coremod, jar.getName(), e);
+                LOGGER.error("Failed to manually load coremod {} from {}.", entry.getKey(), entry.getValue().getName(), e);
+                iterator.remove();
             }
         }
 
@@ -214,6 +280,97 @@ public final class ModDiscoverer {
         rescuedTweakClasses.addAll(shadowTweakClasses.getCapturedTweakClasses());
     }
 
+    /**
+     * Internal usage, adds a mods folder jar to the classloader before Forge does.
+     * The reparseable list keeps Forge from treating the jar as a classpath mod while still discovering it
+     * from the mods folder. Must run after CoreModManager#discoverCoreMods has fully populated the ignored list.
+     */
+    public static void addToClassLoader(File jar) {
+        String name = jar.getName();
+        // Ignored jars are either on the classloader already (coremods, tweakers) or deliberately left off it by Forge
+        if (getIgnoredMods().contains(name) || CoreModManager.getReparseableCoremods().contains(name)) {
+            return;
+        }
+        try {
+            URL url = jar.toURI().toURL();
+            for (URL present : Launch.classLoader.getURLs()) {
+                if (url.toString().equals(present.toString())) {
+                    return;
+                }
+            }
+            Launch.classLoader.addURL(url);
+            CoreModManager.getReparseableCoremods().add(name);
+            LOGGER.info("Added {} to the classloader early to reach its mixin configurations.", name);
+        } catch (MalformedURLException e) {
+            LOGGER.error("Failed to add {} to the classloader early.", name, e);
+        }
+    }
+
+    // Forge for 1.8 names it getLoadedCoremods
+    @SuppressWarnings("unchecked")
+    static List<String> getIgnoredMods() {
+        if (!"1.8".equals(Environment.minecraftVersion())) {
+            return CoreModManager.getIgnoredMods();
+        }
+        try {
+            return (List<String>) CoreModManager.class.getMethod("getLoadedCoremods").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Unable to read Forge's ignored mods", e);
+        }
+    }
+
+    /**
+     * Internal usage, adds the jars with {@code @MixinConfiguration} fields to the classloader and returns their classes.
+     */
+    public static List<String> mixinConfigurationClasses() {
+        List<String> classes = new ArrayList<>();
+        for (Map.Entry<File, Jar> entry : jars.entrySet()) {
+            if (entry.getValue().mixinConfigurations != null) {
+                addToClassLoader(entry.getKey());
+                classes.addAll(entry.getValue().mixinConfigurations);
+            }
+        }
+        return classes;
+    }
+
+    /**
+     * Internal usage, the coremod jars and the jars declaring a dependency on the given mod,
+     * mapped to whether they declare it.
+     */
+    public static Map<File, Boolean> coremodsAndDependents(String modId) {
+        Map<File, Boolean> found = new LinkedHashMap<>();
+        for (Map.Entry<File, Jar> entry : jars.entrySet()) {
+            Jar jar = entry.getValue();
+            boolean dependent = jar.dependencies.contains(modId);
+            if (jar.coremod || dependent) {
+                found.put(entry.getKey(), dependent);
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Internal usage, crashes the game once every mixin connector has run.
+     */
+    public static void crash(String message) {
+        LOGGER.fatal(message);
+        if (crashes == null) {
+            throw new IllegalStateException(message);
+        }
+        crashes.add(message);
+    }
+
+    /**
+     * Internal usage
+     */
+    public static void flushCrashes() {
+        List<String> pending = crashes;
+        crashes = null;
+        if (!pending.isEmpty()) {
+            throw new IllegalStateException(String.join(" ", pending));
+        }
+    }
+
     public static void flushRescuedTweakClasses() {
         if (rescuedTweakClasses.isEmpty()) {
             return;
@@ -233,15 +390,6 @@ public final class ModDiscoverer {
         rescuedTweakClasses.clear();
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<String> getLaunchTweakClasses() {
-        return (List<String>) Launch.blackboard.get(TWEAK_CLASSES);
-    }
-
-    private static void setLaunchTweakClasses(Object tweakClasses) {
-        Launch.blackboard.put(TWEAK_CLASSES, tweakClasses);
-        GlobalProperties.put(GlobalProperties.Keys.of(TWEAK_CLASSES), tweakClasses);
-    }
     /**
      * Gathers the same candidate set FML resolves in {@link CoreModManager#discoverCoreMods} (the flat
      * {@code mods/} and {@code mods/<version>} directories, command-line {@code --mods}, and contained
@@ -264,6 +412,7 @@ public final class ModDiscoverer {
             gson = new GsonBuilder().create();
         }
 
+        classBuffer = new byte[1 << 16];
         for (File candidate : gatherCandidates()) {
             if (candidate.isFile() && candidate.getName().endsWith(".jar")) {
                 scanJar(gson, candidate, true);
@@ -274,20 +423,28 @@ public final class ModDiscoverer {
         for (URL url : Launch.classLoader.getURLs()) {
             try {
                 File file = new File(url.toURI());
-                if (file.isFile() && file.getName().endsWith(".jar") && !fileToModIds.containsKey(file)) {
+                if (file.isFile() && file.getName().endsWith(".jar") && !jars.containsKey(file.getAbsoluteFile())) {
                     scanJar(gson, file, false);
                 }
             } catch (URISyntaxException ignored) { }
         }
 
-        LOGGER.info("Finished gathering {} mods, took {} ms.", modIdToFiles.keySet().size(), System.currentTimeMillis() - startTime);
-        LOGGER.debug("Mods gathered: {}", String.join(", ", modIdToFiles.keySet()));
+        classBuffer = null;
+
+        LOGGER.info("Finished gathering {} mods, took {} ms.", mods.size(), System.currentTimeMillis() - startTime);
+        LOGGER.debug("Mods gathered: {}", String.join(", ", mods.keySet()));
     }
 
     /**
      * Internal usage, files with mixin config/connector entries declared in its manifest.
      */
-    static Set<File> manifestMixinJars() {
+    static List<File> manifestMixinJars() {
+        List<File> manifestMixinJars = new ArrayList<>();
+        for (Map.Entry<File, Jar> entry : jars.entrySet()) {
+            if (entry.getValue().mixinManifest) {
+                manifestMixinJars.add(entry.getKey());
+            }
+        }
         return manifestMixinJars;
     }
 
@@ -296,7 +453,8 @@ public final class ModDiscoverer {
      * (or maven artifact) candidate rather than purely from the dev classloader.
      */
     static boolean isModDirMixinJar(File jar) {
-        return manifestMixinModDirJars.contains(jar);
+        Jar scanned = jars.get(jar.getAbsoluteFile());
+        return scanned != null && scanned.modDir;
     }
 
     /**
@@ -342,6 +500,9 @@ public final class ModDiscoverer {
     }
 
     private static void scanJar(Gson gson, File jar, boolean modDirCandidate) {
+        File source = jar.getAbsoluteFile();
+        Jar scanned = new Jar();
+        jars.put(source, scanned);
         try (JarFile jarFile = new JarFile(jar)) {
             Manifest manifest = jarFile.getManifest();
             if (manifest != null) {
@@ -351,38 +512,43 @@ public final class ModDiscoverer {
                     LOGGER.info("Skipping {} as it is a Cleanroom mod.", jar.getName());
                     return;
                 }
-                if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null || attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
-                    manifestMixinJars.add(jar);
-                    if (modDirCandidate) {
-                        manifestMixinModDirJars.add(jar);
-                    }
+                if (attributes.getValue(ManifestAttributes.MIXINCONFIGS) != null ||
+                        attributes.getValue(ManifestAttributes.MIXINCONNECTOR) != null) {
+                    scanned.mixinManifest = true;
+                    scanned.modDir = modDirCandidate;
                 }
-                resolveLegacyBehaviour(jar, attributes, modDirCandidate);
+                resolveLegacyBehaviour(jar, scanned, attributes, modDirCandidate);
                 // OptiFine special-case
                 if ("optifine.OptiFineForgeTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
-                    recordMod("optifine", jar);
+                    recordMod("optifine", source, scanned);
                     return;
                 }
                 if ("net.jan.moddirector.launchwrapper.ModDirectorTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
-                    recordMod("moddirector", jar);
+                    recordMod("moddirector", source, scanned);
                     return;
                 }
                 if ("git.jbredwards.jsonpaintings.mod.asm.ASMHandler".equals(attributes.getValue(FML_CORE_PLUGIN))) {
-                    recordMod("jsonpaintings", jar);
+                    recordMod("jsonpaintings", source, scanned);
                     return;
                 }
             }
             ZipEntry entry = jarFile.getEntry("mcmod.info");
-            Set<String> modIds = new HashSet<>();
+            Set<String> modIds = new LinkedHashSet<>();
             if (entry != null) {
-                parseMcmodInfo(gson, jarFile.getInputStream(entry), modIds);
+                parseMcmodInfo(gson, jarFile.getInputStream(entry), modIds, scanned.dependencies);
             }
-            String modAnnotationId = scanModAnnotation(jarFile);
-            if (modAnnotationId != null) {
-                modIds.add(modAnnotationId);
+            // The superseded mod stops the game from launching later on, none of its code or mixins should run before that
+            if (FB_SUPPORT && modIds.contains("fermiumbooter")) {
+                scanned.droppedCoremod = null;
+            } else {
+                scanned.coremod = manifest != null && manifest.getMainAttributes().getValue(FML_CORE_PLUGIN) != null;
+                List<String> configurations = scanClasses(jarFile, modIds, scanned.dependencies);
+                if (!configurations.isEmpty()) {
+                    scanned.mixinConfigurations = configurations;
+                }
             }
             for (String modId : modIds) {
-                recordMod(modId, jar);
+                recordMod(modId, source, scanned);
             }
             checkIfJarBundlesMixin(jar, jarFile, modIds);
         } catch (IOException e) {
@@ -390,10 +556,13 @@ public final class ModDiscoverer {
         }
     }
 
-    private static void recordMod(String modId, File source) {
-        File abs = source.getAbsoluteFile();
-        modIdToFiles.put(modId, abs);
-        fileToModIds.put(abs, modId);
+    private static void recordMod(String modId, File source, Jar jar) {
+        mod(modId).sources.add(source);
+        jar.modIds.add(modId);
+    }
+
+    private static Mod mod(String modId) {
+        return mods.computeIfAbsent(modId, k -> new Mod());
     }
 
     /**
@@ -408,19 +577,27 @@ public final class ModDiscoverer {
         }
     }
 
-    private static void parseMcmodInfo(Gson gson, InputStream stream, Set<String> ids) {
+    private static void parseMcmodInfo(Gson gson, InputStream stream, Set<String> ids, Set<String> dependencies) {
         try {
             JsonElement root = gson.fromJson(new InputStreamReader(stream, StandardCharsets.UTF_8), JsonElement.class);
-            if (root.isJsonArray()) {
-                for (JsonElement element : root.getAsJsonArray()) {
-                    if (element.isJsonObject()) {
-                        ids.add(element.getAsJsonObject().get("modid").getAsString());
+            JsonArray mods = root.isJsonArray() ? root.getAsJsonArray() : root.getAsJsonObject().get("modList").getAsJsonArray();
+            for (JsonElement element : mods) {
+                if (element.isJsonObject()) {
+                    JsonObject mod = element.getAsJsonObject();
+                    String id = mod.get("modid").getAsString();
+                    ids.add(id);
+                    if (mod.has("name")) {
+                        mod(id).name = mod.get("name").getAsString();
                     }
-                }
-            } else {
-                for (JsonElement element : root.getAsJsonObject().get("modList").getAsJsonArray()) {
-                    if (element.isJsonObject()) {
-                        ids.add(element.getAsJsonObject().get("modid").getAsString());
+                    if (mod.has("version")) {
+                        mod(id).version = mod.get("version").getAsString();
+                    }
+                    for (String key : new String[] { "requiredMods", "dependencies" }) {
+                        if (mod.has(key) && mod.get(key).isJsonArray()) {
+                            for (JsonElement dependency : mod.getAsJsonArray(key)) {
+                                addDependencies(dependency.getAsString(), dependencies);
+                            }
+                        }
                     }
                 }
             }
@@ -431,29 +608,140 @@ public final class ModDiscoverer {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<String> getLaunchTweakClasses() {
+        return (List<String>) Launch.blackboard.get(TWEAK_CLASSES);
+    }
+
+    private static void setLaunchTweakClasses(Object tweakClasses) {
+        Launch.blackboard.put(TWEAK_CLASSES, tweakClasses);
+        GlobalProperties.put(GlobalProperties.Keys.of(TWEAK_CLASSES), tweakClasses);
+    }
+
+    // Mods declare this in @Mod as required-after:id, after:id or even required:id, and in mcmod.info as id@range.
+    // The range is not checked, some mods put the CurseForge project id there in place of a version...
+    private static void addDependencies(String dependencies, Set<String> modIds) {
+        if (dependencies == null) {
+            return;
+        }
+        for (String dependency : dependencies.split("[;,]")) {
+            int at = dependency.indexOf('@');
+            modIds.add(dependency.substring(dependency.indexOf(':') + 1, at == -1 ? dependency.length() : at).trim());
+        }
+    }
+
     /**
-     * Scans the jar's classes for the first {@code @Mod} annotation and returns its {@code modid}
-     * or {@code null} if none declares one.
-     * Reads bytecode only and unreadable entries are skipped, the walk stops at the first match.
+     * Scans the jar's classes for {@code @Mod} annotations, adding their ids.
+     * Reads bytecode only, unreadable entries and commonly shaded libraries are skipped.
+     * The walk stops at the first {@code @Mod} unless the jar depends on MixinBooter.
+     *
+     * @return the classes with {@code @MixinConfiguration} fields
      */
-    private static String scanModAnnotation(JarFile jar) {
+    private static List<String> scanClasses(JarFile jar, Set<String> modIds, Set<String> dependencies) {
+        List<String> configurations = new ArrayList<>();
         Enumeration<JarEntry> entries = jar.entries();
+        entryLoop:
         while (entries.hasMoreElements()) {
             JarEntry entry = entries.nextElement();
-            if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
+            String name = entry.getName();
+            if (entry.isDirectory() || !name.endsWith(".class")) {
                 continue;
             }
+            for (String library : SHADED_LIBRARIES) {
+                if (name.startsWith(library)) {
+                    continue entryLoop;
+                }
+            }
             try (InputStream in = jar.getInputStream(entry)) {
-                ModAnnotationVisitor visitor = new ModAnnotationVisitor();
-                try {
-                    new ClassReader(in).accept(visitor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-                } catch (ExitVisitException ignored) { }
-                if (visitor.modId != null) {
-                    return visitor.modId;
+                int length = readClass(in, (int) entry.getSize());
+                if (!namesAnnotation(classBuffer)) {
+                    continue;
+                }
+                ClassScanner scanner = new ClassScanner();
+                new ClassReader(classBuffer, 0, length).accept(scanner, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                if (scanner.record(modIds, configurations)) {
+                    addDependencies(scanner.mod.string("dependencies"), dependencies);
+                    if (!dependencies.contains(Tags.MOD_ID)) {
+                        return configurations;
+                    }
                 }
             } catch (Exception ignored) { }
         }
-        return null;
+        return configurations;
+    }
+
+    private static int readClass(InputStream in, int size) throws IOException {
+        if (size > classBuffer.length) {
+            classBuffer = new byte[size];
+        }
+        int length = 0;
+        for (int read; (read = in.read(classBuffer, length, classBuffer.length - length)) != -1; ) {
+            length += read;
+            if (length == classBuffer.length) {
+                classBuffer = Arrays.copyOf(classBuffer, length << 1);
+            }
+        }
+        return length;
+    }
+
+    // Walks the constant pool alone, so ASM only parses the few classes that name an annotation being looked for
+    private static boolean namesAnnotation(byte[] bytes) {
+        int count = (bytes[8] & 0xFF) << 8 | bytes[9] & 0xFF;
+        for (int entry = 1, offset = 10; entry < count; entry++) {
+            switch (bytes[offset]) {
+                case 1:
+                    int length = (bytes[offset + 1] & 0xFF) << 8 | bytes[offset + 2] & 0xFF;
+                    offset += 3;
+                    for (byte[] annotation : ANNOTATIONS) {
+                        if (length == annotation.length && regionMatches(bytes, offset, annotation)) {
+                            return true;
+                        }
+                    }
+                    offset += length;
+                    break;
+                case 5:
+                case 6:
+                    entry++;
+                    offset += 9;
+                    break;
+                case 7:
+                case 8:
+                case 16:
+                case 19:
+                case 20:
+                    offset += 3;
+                    break;
+                case 15:
+                    offset += 4;
+                    break;
+                case 3:
+                case 4:
+                case 9:
+                case 10:
+                case 11:
+                case 12:
+                case 17:
+                case 18:
+                    offset += 5;
+                    break;
+                default:
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean regionMatches(byte[] bytes, int offset, byte[] region) {
+        for (int i = 0; i < region.length; i++) {
+            if (bytes[offset + i] != region[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static byte[] ascii(String string) {
+        return string.getBytes(StandardCharsets.US_ASCII);
     }
 
     /**
@@ -465,18 +753,34 @@ public final class ModDiscoverer {
      * the {@code TweakClass} will be cascaded and the {@code FMLCorePlugin} will never be instantiated.
      * ReplayMod uses its own bootstrap tweaker but relies on its coremod to remove the jar from Forge's ignored list.
      */
-    private static void resolveLegacyBehaviour(File jar, Attributes attributes, boolean modDirCandidate) {
+    private static void resolveLegacyBehaviour(File jar, Jar scanned, Attributes attributes, boolean modDirCandidate) {
         if ("true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
-            forceLoadAsModFiles.add(jar.getName());
-            if (modDirCandidate && attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null) {
-                forceReparseableFiles.add(jar.getName());
-            }
+            forceLoadAsModFiles.merge(jar.getName(), modDirCandidate && attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null, Boolean::logicalOr);
         }
         String coremod = attributes.getValue(FML_CORE_PLUGIN);
         String tweaker = attributes.getValue(ManifestAttributes.TWEAKER);
         if (coremod != null && ALLOWED_TWEAKERS.contains(tweaker)) {
-            droppedCoremods.put(jar.getAbsoluteFile(), coremod);
+            scanned.droppedCoremod = coremod;
         }
+    }
+
+    private static final class Mod {
+
+        private final Set<File> sources = new LinkedHashSet<>();
+
+        private String name, version;
+
+    }
+
+    private static final class Jar {
+
+        private final Set<String> modIds = new LinkedHashSet<>();
+        private final Set<String> dependencies = new HashSet<>();
+
+        private boolean mixinManifest, modDir, coremod;
+        private String droppedCoremod;
+        private List<String> mixinConfigurations;
+
     }
 
 
@@ -518,44 +822,83 @@ public final class ModDiscoverer {
     }
 
     /**
-     * Reads {@code modid} from a class's {@code @Mod} annotation. An annotation element is always a
-     * compile-time constant, so the value is read straight from the bytecode without loading the class.
+     * Reads a class's {@code @Mod} annotation. Annotation elements are always compile-time constants,
+     * so values are read straight from the bytecode without loading the class.
      */
-    private static class ModAnnotationVisitor extends ClassVisitor {
+    private static final class ClassScanner extends ClassVisitor {
 
         private static final String MOD_ANNOTATION = "Lnet/minecraftforge/fml/common/Mod;";
+        private static final String MIXIN_CONFIGURATION = "Lzone/rong/mixinbooter/util/MixinConfiguration;";
 
-        private String modId;
+        private final FieldVisitor configurationField = new FieldVisitor(Opcodes.ASM5) {
 
-        private ModAnnotationVisitor() {
+            @Override
+            public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                ClassScanner.this.mixinConfiguration |= MIXIN_CONFIGURATION.equals(descriptor);
+                return null;
+            }
+
+        };
+
+        private String className;
+        private AnnotationValues mod;
+        private boolean mixinConfiguration;
+
+        private ClassScanner() {
             super(Opcodes.ASM5);
         }
 
         @Override
-        public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-            if (!MOD_ANNOTATION.equals(descriptor)) {
-                return null;
-            }
-            return new AnnotationVisitor(Opcodes.ASM5) {
-                @Override
-                public void visit(String name, Object value) {
-                    if ("modid".equals(name) && value instanceof String) {
-                        ModAnnotationVisitor.this.modId = (String) value;
-                        throw new ExitVisitException();
-                    }
-                }
-            };
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            this.className = name.replace('/', '.');
         }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            return MOD_ANNOTATION.equals(descriptor) ? this.mod = new AnnotationValues() : null;
+        }
+
+        @Override
+        public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+            return this.configurationField;
+        }
+
+        private boolean record(Set<String> modIds, List<String> configurations) {
+            if (this.mixinConfiguration) {
+                configurations.add(this.className);
+            }
+            String modId = this.mod == null ? null : this.mod.string("modid");
+            if (modId != null) {
+                modIds.add(modId);
+                String name = this.mod.string("name"), version = this.mod.string("version");
+                if (name != null) {
+                    mod(modId).name = name;
+                }
+                if (version != null) {
+                    mod(modId).version = version;
+                }
+            }
+            return modId != null;
+        }
+
     }
 
-    /**
-     * Thrown to abort {@link ClassReader#accept} the moment a {@code modid} is read
-     * so the rest of the class is not visited. Carries no stacktrace, for control flow and not a real exception.
-     */
-    private static class ExitVisitException extends RuntimeException {
+    private static final class AnnotationValues extends AnnotationVisitor {
 
-        private ExitVisitException() {
-            super(null, null, false, false);
+        private final Map<String, Object> values = new HashMap<>();
+
+        private AnnotationValues() {
+            super(Opcodes.ASM5);
+        }
+
+        @Override
+        public void visit(String name, Object value) {
+            this.values.put(name, value);
+        }
+
+        private String string(String key) {
+            Object value = this.values.get(key);
+            return value instanceof String && !((String) value).isEmpty() ? (String) value : null;
         }
 
     }

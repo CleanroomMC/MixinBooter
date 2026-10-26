@@ -1,5 +1,6 @@
 package zone.rong.mixinbooter.test;
 
+import fermiumbooter.FermiumRegistryAPI;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.spongepowered.asm.mixin.Mixins;
@@ -17,6 +18,11 @@ import java.util.Map;
  */
 @IFMLLoadingPlugin.Name("MixinBooter Test CoreMod")
 public class TestCoreMod implements IFMLLoadingPlugin, IEarlyMixinLoader {
+
+    public TestCoreMod() {
+        // Targets a plain mod's class while being added early
+        FermiumRegistryAPI.enqueueMixin(false, "mixin.enqueue_test.json", () -> FermiumRegistryAPI.isModPresent("jei"));
+    }
 
     @Override
     public List<String> getMixinConfigs() {

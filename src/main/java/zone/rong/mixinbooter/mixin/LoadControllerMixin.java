@@ -85,6 +85,12 @@ public class LoadControllerMixin {
                     logger.error("Failed to execute late loader [{}].", lateLoader.getClass().getName(), t);
                 }
             }
+            try {
+                Class.forName("zone.rong.mixinbooter.fb.FBMod").getMethod("applyLate").invoke(null);
+            } catch (ClassNotFoundException ignored) {
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("Failed to apply fermiumbooter support", e);
+            }
         }
     }
 
