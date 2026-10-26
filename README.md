@@ -41,7 +41,7 @@ repositories {
 }
 
 dependencies {
-    def mixin = 'zone.rong:mixinbooter:11.18'
+    def mixin = 'zone.rong:mixinbooter:12.0'
     
     implementation (mixin) {
         transitive = false

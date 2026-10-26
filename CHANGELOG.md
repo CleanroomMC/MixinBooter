@@ -1,5 +1,30 @@
 # Changelog
 
+## [12.0] - 2026-10-26
+
+### Added
+- `util.ConditionalMixin`, a fluent API that adds mixin configurations depending on conditions, config options and installed mods
+  - Options are read from a config file by name, or from a Forge `@Config` class which is loaded from its file early on 1.11.2 and newer
+  - Mod rules marked with `orWarn` log skips as warnings, ones marked with `orCrash` crash the game once every mixin connector has run
+- `util.MixinConfiguration`, an annotation on `@Config` boolean fields that adds a mixin configuration with its dependencies
+  - Jars are only searched past their `@Mod` class when they depend on `mixinbooter`
+  - Needs 1.11.2 or newer
+- Built-in support for mods depending on `fermiumbooter` by popular request, the standalone mod is no longer needed 
+  - Binary compatible
+  - Support only activates on 1.12.2, when a mod declares the dependency, ships `@MixinConfig` classes or calls the API from a coremod
+  - `@MixinConfig` toggles run through `ConditionalMixin`
+  - `ModDiscoverer#isModNamed` and `ModDiscoverer#isModVersionInRange` back its mod name and version checks
+
+### Fixed
+- Jars with manifest mixins or `ForceLoadAsMod` crashing on 1.8, whose Forge names its ignored mods list differently
+- `fermiumbooter`'s own blacklisting API having issues and not being powerful enough
+- Mods depending on `fermiumbooter` no longer get every mod jar added to the classloader early
+- `fermiumbooter`'s `@MixinConfig` toggles now read both quoted and unquoted config option names
+
+### Changed
+- Mod discovery reads each class's constant pool first and only parses classes naming `@Mod` or `@MixinConfig`
+- Updated CleanMix to 0.8.0, which adds `@Break` and `@Continue` injectors and catches up with FabricMC's Mixin 0.17.5
+
 ## [11.18] - 2026-10-12
 
 ### Fixed
