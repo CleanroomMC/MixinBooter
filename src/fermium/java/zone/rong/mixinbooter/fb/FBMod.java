@@ -1,7 +1,5 @@
 package zone.rong.mixinbooter.fb;
 
-import com.google.common.io.ByteStreams;
-import com.google.common.primitives.Bytes;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import org.objectweb.asm.AnnotationVisitor;
@@ -20,10 +18,8 @@ import zone.rong.mixinbooter.util.Environment;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,7 +27,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -51,7 +46,6 @@ public final class FBMod {
     private static final String COMPAT_DESC = CONFIG_CLASS + "$CompatHandling;";
     private static final String COMPAT_CONTAINER_DESC = CONFIG_CLASS + "$CompatHandlingContainer;";
     private static final String CONFIG_NAME_DESC = "Lnet/minecraftforge/common/config/Config$Name;";
-    private static final byte[] CONFIG_BYTES = CONFIG_DESC.getBytes(StandardCharsets.UTF_8);
 
     private static final Set<File> dependents = new LinkedHashSet<>();
     private static final List<File> toggleJars = new ArrayList<>();
@@ -151,32 +145,26 @@ public final class FBMod {
     }
 
     // FB reads every class of every jar for @MixinConfig
-    // Here only jars depending on it are read, and coremods, as coremods using its API do not always declare the dependency
+    // ModDiscoverer finds them while walking the jars depending on it, and coremods which do not always declare it
     private static void scan() {
         for (Map.Entry<File, Boolean> entry : ModDiscoverer.coremodsAndDependents(ID).entrySet()) {
             File source = entry.getKey();
             List<Toggle> sourceToggles = new ArrayList<>();
             List<String> sourceClassloadEarly = new ArrayList<>();
-            try (JarFile jar = new JarFile(source)) {
-                Enumeration<JarEntry> entries = jar.entries();
-                while (entries.hasMoreElements()) {
-                    JarEntry classEntry = entries.nextElement();
-                    if (classEntry.isDirectory() || !classEntry.getName().endsWith(".class")) {
-                        continue;
-                    }
-                    byte[] bytes;
-                    try (InputStream in = jar.getInputStream(classEntry)) {
-                        bytes = ByteStreams.toByteArray(in);
-                    }
-                    if (Bytes.indexOf(bytes, CONFIG_BYTES) != -1) {
+            List<String> classes = ModDiscoverer.fermiumConfigClasses(source);
+            if (!classes.isEmpty()) {
+                try (JarFile jar = new JarFile(source)) {
+                    for (String name : classes) {
                         ClassScanner scanner = new ClassScanner();
-                        new ClassReader(bytes).accept(scanner, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                        try (InputStream in = jar.getInputStream(jar.getEntry(name))) {
+                            new ClassReader(in).accept(scanner, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                        }
                         scanner.record(sourceToggles, sourceClassloadEarly);
                     }
+                } catch (IOException e) {
+                    logger().error("Failed to read {} for its mixin toggles.", source.getName(), e);
+                    continue;
                 }
-            } catch (IOException e) {
-                logger().error("Failed to read {} for its mixin toggles.", source.getName(), e);
-                continue;
             }
             if (entry.getValue() || !sourceToggles.isEmpty() || !sourceClassloadEarly.isEmpty()) {
                 dependents.add(source);

@@ -37,6 +37,10 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -65,18 +69,30 @@ public final class ModDiscoverer {
             "org.spongepowered.asm.launch.MixinTweaker",
             "com.replaymod.core.tweaker.ReplayModTweaker"
     );
+    // Very naive list, you should use Cleanroom instead of Forge + MixinBooter!
     private static final String[] SHADED_LIBRARIES = {
-            "org/spongepowered/", "com/llamalad7/", "org/objectweb/", "com/google/", "it/unimi/", "kotlin/", "scala/"
+            "org/spongepowered/", "com/llamalad7/", "org/objectweb/", "com/google/", "it/unimi/", "kotlin/", "scala/",
+            "net/minecraft/", "net/minecraftforge/", "com/mojang/", "org/apache/", "io/netty/", "gnu/trove/", "akka/",
+            "com/ibm/", "org/lwjgl/", "org/jline/", "com/sun/", "javax/", "org/jetbrains/", "org/intellij/",
+            "org/checkerframework/", "org/slf4j/", "com/fasterxml/", "org/yaml/"
     };
-    private static final byte[][] ANNOTATIONS = { ascii(ClassScanner.MOD_ANNOTATION), ascii(ClassScanner.MIXIN_CONFIGURATION) };
+    private static final byte[][] ANNOTATIONS = {
+            ascii(ClassScanner.MOD_ANNOTATION), ascii(ClassScanner.MIXIN_CONFIGURATION), ascii(ClassScanner.FERMIUM_CONFIG)
+    };
+    private static final String FERMIUMBOOTER = "fermiumbooter";
     // Only the mod jar ships FB support, which supersedes the standalone mod on 1.12.2
     private static final boolean FB_SUPPORT = "1.12.2".equals(Environment.minecraftVersion()) &&
             ModDiscoverer.class.getClassLoader().getResource("zone/rong/mixinbooter/fb/FBMod.class") != null;
+    // Measured on 20 to 90 jar packs with 4 and 8 cores, a second thread cuts discovery by a third or more past 32 jars.
+    // A third helps big packs a little and more threads do nothing, as the largest jar bounds the walk.
+    private static final int JARS_PER_THREAD = 32;
+    private static final int MAX_THREADS = 3;
+    // Reused for every class read on the same discovery thread
+    private static final ThreadLocal<byte[]> CLASS_BUFFER = ThreadLocal.withInitial(() -> new byte[1 << 16]);
+
     private static boolean discovered = false;
     // Mixin connectors have their exceptions swallowed, so crashes wait until every connector has run
     private static List<String> crashes = new ArrayList<>();
-    // Reused for every class read during discovery
-    private static byte[] classBuffer;
 
     private ModDiscoverer() { }
 
@@ -341,12 +357,24 @@ public final class ModDiscoverer {
         Map<File, Boolean> found = new LinkedHashMap<>();
         for (Map.Entry<File, Jar> entry : jars.entrySet()) {
             Jar jar = entry.getValue();
+            if (jar.modIds.contains(Tags.MOD_ID)) {
+                continue;
+            }
             boolean dependent = jar.dependencies.contains(modId);
             if (jar.coremod || dependent) {
                 found.put(entry.getKey(), dependent);
             }
         }
         return found;
+    }
+
+    /**
+     * Internal usage, the class entries of a coremod or a jar depending on fermiumbooter that are annotated with its
+     * {@code @MixinConfig}.
+     */
+    public static List<String> fermiumConfigClasses(File jar) {
+        Jar scanned = jars.get(jar.getAbsoluteFile());
+        return scanned == null ? Collections.emptyList() : scanned.fermiumConfigs;
     }
 
     /**
@@ -412,27 +440,78 @@ public final class ModDiscoverer {
             gson = new GsonBuilder().create();
         }
 
-        classBuffer = new byte[1 << 16];
+        List<Runnable> scans = new ArrayList<>();
         for (File candidate : gatherCandidates()) {
-            if (candidate.isFile() && candidate.getName().endsWith(".jar")) {
-                scanJar(gson, candidate, true);
+            queueScan(scans, gson, candidate, true);
+        }
+
+        // Only the dev environment loads mods from the classpath
+        if (Environment.inDev()) {
+            for (URL url : Launch.classLoader.getURLs()) {
+                try {
+                    queueScan(scans, gson, new File(url.toURI()), false);
+                } catch (URISyntaxException ignored) { }
             }
         }
 
-        // Secondary: classloader URLs
-        for (URL url : Launch.classLoader.getURLs()) {
-            try {
-                File file = new File(url.toURI());
-                if (file.isFile() && file.getName().endsWith(".jar") && !jars.containsKey(file.getAbsoluteFile())) {
-                    scanJar(gson, file, false);
-                }
-            } catch (URISyntaxException ignored) { }
-        }
+        runScans(scans);
+        // Pool threads end with the pool, the main thread keeps its buffer unless removed
+        CLASS_BUFFER.remove();
 
-        classBuffer = null;
+        // Merged in scan order, so later jars win as they did when scanned one by one
+        for (Map.Entry<File, Jar> entry : jars.entrySet()) {
+            Jar jar = entry.getValue();
+            if (jar.forceLoadAsMod != null) {
+                forceLoadAsModFiles.merge(entry.getKey().getName(), jar.forceLoadAsMod, Boolean::logicalOr);
+            }
+            for (Map.Entry<String, Mod> declared : jar.declared.entrySet()) {
+                Mod mod = mod(declared.getKey());
+                if (declared.getValue().name != null) {
+                    mod.name = declared.getValue().name;
+                }
+                if (declared.getValue().version != null) {
+                    mod.version = declared.getValue().version;
+                }
+            }
+            for (String modId : jar.modIds) {
+                mod(modId).sources.add(entry.getKey());
+            }
+        }
 
         LOGGER.info("Finished gathering {} mods, took {} ms.", mods.size(), System.currentTimeMillis() - startTime);
         LOGGER.debug("Mods gathered: {}", String.join(", ", mods.keySet()));
+    }
+
+    private static void queueScan(List<Runnable> scans, Gson gson, File file, boolean modDirCandidate) {
+        File source = file.getAbsoluteFile();
+        if (!source.isFile() || !source.getName().endsWith(".jar") || jars.containsKey(source)) {
+            return;
+        }
+        Jar scanned = new Jar();
+        jars.put(source, scanned);
+        scans.add(() -> scanJar(gson, source, scanned, modDirCandidate));
+    }
+
+    private static void runScans(List<Runnable> scans) {
+        int threads = Math.min(Math.min(MAX_THREADS, Runtime.getRuntime().availableProcessors() - 1), 1 + scans.size() / JARS_PER_THREAD);
+        if (threads <= 1) {
+            scans.forEach(Runnable::run);
+            return;
+        }
+        ExecutorService executor = Executors.newFixedThreadPool(threads, runnable -> new Thread(runnable, "MixinBooter Discovery"));
+        try {
+            List<Future<?>> futures = new ArrayList<>(scans.size());
+            for (Runnable scan : scans) {
+                futures.add(executor.submit(scan));
+            }
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to gather mods", e);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     /**
@@ -499,10 +578,7 @@ public final class ModDiscoverer {
         return candidates;
     }
 
-    private static void scanJar(Gson gson, File jar, boolean modDirCandidate) {
-        File source = jar.getAbsoluteFile();
-        Jar scanned = new Jar();
-        jars.put(source, scanned);
+    private static void scanJar(Gson gson, File jar, Jar scanned, boolean modDirCandidate) {
         try (JarFile jarFile = new JarFile(jar)) {
             Manifest manifest = jarFile.getManifest();
             if (manifest != null) {
@@ -520,45 +596,37 @@ public final class ModDiscoverer {
                 resolveLegacyBehaviour(jar, scanned, attributes, modDirCandidate);
                 // OptiFine special-case
                 if ("optifine.OptiFineForgeTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
-                    recordMod("optifine", source, scanned);
+                    scanned.modIds.add("optifine");
                     return;
                 }
                 if ("net.jan.moddirector.launchwrapper.ModDirectorTweaker".equals(attributes.getValue(ManifestAttributes.TWEAKER))) {
-                    recordMod("moddirector", source, scanned);
+                    scanned.modIds.add("moddirector");
                     return;
                 }
                 if ("git.jbredwards.jsonpaintings.mod.asm.ASMHandler".equals(attributes.getValue(FML_CORE_PLUGIN))) {
-                    recordMod("jsonpaintings", source, scanned);
+                    scanned.modIds.add("jsonpaintings");
                     return;
                 }
             }
             ZipEntry entry = jarFile.getEntry("mcmod.info");
             Set<String> modIds = new LinkedHashSet<>();
             if (entry != null) {
-                parseMcmodInfo(gson, jarFile.getInputStream(entry), modIds, scanned.dependencies);
+                parseMcmodInfo(gson, jarFile.getInputStream(entry), modIds, scanned);
             }
             // The superseded mod stops the game from launching later on, none of its code or mixins should run before that
-            if (FB_SUPPORT && modIds.contains("fermiumbooter")) {
+            if (FB_SUPPORT && modIds.contains(FERMIUMBOOTER)) {
                 scanned.droppedCoremod = null;
             } else {
                 scanned.coremod = manifest != null && manifest.getMainAttributes().getValue(FML_CORE_PLUGIN) != null;
-                List<String> configurations = scanClasses(jarFile, modIds, scanned.dependencies);
-                if (!configurations.isEmpty()) {
-                    scanned.mixinConfigurations = configurations;
+                if (!modIds.contains(Tags.MOD_ID)) {
+                    scanClasses(jarFile, modIds, scanned);
                 }
             }
-            for (String modId : modIds) {
-                recordMod(modId, source, scanned);
-            }
+            scanned.modIds.addAll(modIds);
             checkIfJarBundlesMixin(jar, jarFile, modIds);
         } catch (IOException e) {
             LOGGER.error("Failed to read mod metadata from {}", jar.getName(), e);
         }
-    }
-
-    private static void recordMod(String modId, File source, Jar jar) {
-        mod(modId).sources.add(source);
-        jar.modIds.add(modId);
     }
 
     private static Mod mod(String modId) {
@@ -577,7 +645,7 @@ public final class ModDiscoverer {
         }
     }
 
-    private static void parseMcmodInfo(Gson gson, InputStream stream, Set<String> ids, Set<String> dependencies) {
+    private static void parseMcmodInfo(Gson gson, InputStream stream, Set<String> ids, Jar scanned) {
         try {
             JsonElement root = gson.fromJson(new InputStreamReader(stream, StandardCharsets.UTF_8), JsonElement.class);
             JsonArray mods = root.isJsonArray() ? root.getAsJsonArray() : root.getAsJsonObject().get("modList").getAsJsonArray();
@@ -587,15 +655,15 @@ public final class ModDiscoverer {
                     String id = mod.get("modid").getAsString();
                     ids.add(id);
                     if (mod.has("name")) {
-                        mod(id).name = mod.get("name").getAsString();
+                        scanned.declared(id).name = mod.get("name").getAsString();
                     }
                     if (mod.has("version")) {
-                        mod(id).version = mod.get("version").getAsString();
+                        scanned.declared(id).version = mod.get("version").getAsString();
                     }
                     for (String key : new String[] { "requiredMods", "dependencies" }) {
                         if (mod.has(key) && mod.get(key).isJsonArray()) {
                             for (JsonElement dependency : mod.getAsJsonArray(key)) {
-                                addDependencies(dependency.getAsString(), dependencies);
+                                addDependencies(dependency.getAsString(), scanned.dependencies);
                             }
                         }
                     }
@@ -633,12 +701,12 @@ public final class ModDiscoverer {
     /**
      * Scans the jar's classes for {@code @Mod} annotations, adding their ids.
      * Reads bytecode only, unreadable entries and commonly shaded libraries are skipped.
-     * The walk stops at the first {@code @Mod} unless the jar depends on MixinBooter.
-     *
-     * @return the classes with {@code @MixinConfiguration} fields
+     * The walk stops at the first {@code @Mod} unless the jar depends on MixinBooter, or fermiumbooter's
+     * {@code @MixinConfig} classes are looked for in it.
      */
-    private static List<String> scanClasses(JarFile jar, Set<String> modIds, Set<String> dependencies) {
+    private static void scanClasses(JarFile jar, Set<String> modIds, Jar scanned) {
         List<String> configurations = new ArrayList<>();
+        byte[] buffer = CLASS_BUFFER.get();
         Enumeration<JarEntry> entries = jar.entries();
         entryLoop:
         while (entries.hasMoreElements()) {
@@ -653,35 +721,38 @@ public final class ModDiscoverer {
                 }
             }
             try (InputStream in = jar.getInputStream(entry)) {
-                int length = readClass(in, (int) entry.getSize());
-                if (!namesAnnotation(classBuffer)) {
+                if (entry.getSize() > buffer.length) {
+                    buffer = new byte[(int) entry.getSize()];
+                }
+                int length = 0;
+                for (int read; (read = in.read(buffer, length, buffer.length - length)) != -1;) {
+                    length += read;
+                    if (length == buffer.length) {
+                        buffer = Arrays.copyOf(buffer, length << 1);
+                    }
+                }
+                if (!namesAnnotation(buffer)) {
                     continue;
                 }
                 ClassScanner scanner = new ClassScanner();
-                new ClassReader(classBuffer, 0, length).accept(scanner, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-                if (scanner.record(modIds, configurations)) {
-                    addDependencies(scanner.mod.string("dependencies"), dependencies);
-                    if (!dependencies.contains(Tags.MOD_ID)) {
-                        return configurations;
+                new ClassReader(buffer, 0, length).accept(scanner, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                if (scanner.fermiumConfig) {
+                    scanned.fermiumConfigs.add(name);
+                }
+                if (scanner.record(modIds, configurations, scanned)) {
+                    addDependencies(scanner.mod.string("dependencies"), scanned.dependencies);
+                    // Coremods using fermiumbooter's API do not always declare the dependency
+                    boolean fermium = FB_SUPPORT && (scanned.coremod || scanned.dependencies.contains(FERMIUMBOOTER));
+                    if (!scanned.dependencies.contains(Tags.MOD_ID) && !fermium) {
+                        break;
                     }
                 }
             } catch (Exception ignored) { }
         }
-        return configurations;
-    }
-
-    private static int readClass(InputStream in, int size) throws IOException {
-        if (size > classBuffer.length) {
-            classBuffer = new byte[size];
+        CLASS_BUFFER.set(buffer);
+        if (!configurations.isEmpty()) {
+            scanned.mixinConfigurations = configurations;
         }
-        int length = 0;
-        for (int read; (read = in.read(classBuffer, length, classBuffer.length - length)) != -1; ) {
-            length += read;
-            if (length == classBuffer.length) {
-                classBuffer = Arrays.copyOf(classBuffer, length << 1);
-            }
-        }
-        return length;
     }
 
     // Walks the constant pool alone, so ASM only parses the few classes that name an annotation being looked for
@@ -755,7 +826,7 @@ public final class ModDiscoverer {
      */
     private static void resolveLegacyBehaviour(File jar, Jar scanned, Attributes attributes, boolean modDirCandidate) {
         if ("true".equalsIgnoreCase(attributes.getValue(FORCE_LOAD_AS_MOD))) {
-            forceLoadAsModFiles.merge(jar.getName(), modDirCandidate && attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null, Boolean::logicalOr);
+            scanned.forceLoadAsMod = modDirCandidate && attributes.getValue(COREMOD_CONTAINS_FML_MOD) != null;
         }
         String coremod = attributes.getValue(FML_CORE_PLUGIN);
         String tweaker = attributes.getValue(ManifestAttributes.TWEAKER);
@@ -776,10 +847,18 @@ public final class ModDiscoverer {
 
         private final Set<String> modIds = new LinkedHashSet<>();
         private final Set<String> dependencies = new HashSet<>();
+        // Names and versions this jar declares, merged into the mods once every jar is scanned
+        private final Map<String, Mod> declared = new HashMap<>();
+        private final List<String> fermiumConfigs = new ArrayList<>();
 
         private boolean mixinManifest, modDir, coremod;
+        private Boolean forceLoadAsMod;
         private String droppedCoremod;
         private List<String> mixinConfigurations;
+
+        private Mod declared(String modId) {
+            return this.declared.computeIfAbsent(modId, k -> new Mod());
+        }
 
     }
 
@@ -829,6 +908,7 @@ public final class ModDiscoverer {
 
         private static final String MOD_ANNOTATION = "Lnet/minecraftforge/fml/common/Mod;";
         private static final String MIXIN_CONFIGURATION = "Lzone/rong/mixinbooter/util/MixinConfiguration;";
+        private static final String FERMIUM_CONFIG = "Lfermiumbooter/annotations/MixinConfig;";
 
         private final FieldVisitor configurationField = new FieldVisitor(Opcodes.ASM5) {
 
@@ -842,7 +922,7 @@ public final class ModDiscoverer {
 
         private String className;
         private AnnotationValues mod;
-        private boolean mixinConfiguration;
+        private boolean mixinConfiguration, fermiumConfig;
 
         private ClassScanner() {
             super(Opcodes.ASM5);
@@ -855,6 +935,7 @@ public final class ModDiscoverer {
 
         @Override
         public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            this.fermiumConfig |= FERMIUM_CONFIG.equals(descriptor);
             return MOD_ANNOTATION.equals(descriptor) ? this.mod = new AnnotationValues() : null;
         }
 
@@ -863,7 +944,7 @@ public final class ModDiscoverer {
             return this.configurationField;
         }
 
-        private boolean record(Set<String> modIds, List<String> configurations) {
+        private boolean record(Set<String> modIds, List<String> configurations, Jar scanned) {
             if (this.mixinConfiguration) {
                 configurations.add(this.className);
             }
@@ -872,10 +953,10 @@ public final class ModDiscoverer {
                 modIds.add(modId);
                 String name = this.mod.string("name"), version = this.mod.string("version");
                 if (name != null) {
-                    mod(modId).name = name;
+                    scanned.declared(modId).name = name;
                 }
                 if (version != null) {
-                    mod(modId).version = version;
+                    scanned.declared(modId).version = version;
                 }
             }
             return modId != null;
