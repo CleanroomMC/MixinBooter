@@ -13,7 +13,7 @@ public class TestMixinToggles {
     public static boolean toggleTest = true;
 
     @MixinConfig.MixinToggle(mixinJson = "mixin.toggle_disabled_test.json", defaultValue = true)
-    @MixinConfig.CompatHandling(modid = "jei", desired = false, reason = "Expected to be disabled")
+    @MixinConfig.CompatHandling(modid = "mixinbooter", desired = false, reason = "Expected to be disabled")
     public static boolean toggleDisabledTest = true;
 
 }
