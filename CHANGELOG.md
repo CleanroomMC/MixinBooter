@@ -5,6 +5,9 @@
 ### Added
 - Redirects for mods that use FermiumBooter's included MixinSquared, to use CleanMix 0.9.0's MixinEdits API
 
+### Fixed
+- `ClassCircularityError` when a coremod calls `MixinExtrasBootstrap#init` itself, MixinExtras is now bootstrapped before any other coremod loads
+
 ### Changed
 - Mod discovery is about 4 times faster, after properly benchmarking & diagnostics
   - Skips more commonly shaded libraries, such as Minecraft, Forge, Netty and Apache's

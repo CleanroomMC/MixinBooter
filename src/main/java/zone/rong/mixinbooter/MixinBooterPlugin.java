@@ -5,8 +5,10 @@ import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.logging.ILogger;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.transformer.Config;
+import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.asm.ASM;
 import zone.rong.mixinbooter.util.ConditionalMixin;
@@ -93,6 +95,10 @@ public final class MixinBooterPlugin implements IFMLLoadingPlugin {
         System.setProperty("mixin.service", "zone.rong.mixinbooter.service.MixinBooterService");
 
         MixinBootstrap.init();
+
+        MixinEnvironment environment = MixinEnvironment.getCurrentEnvironment();
+        ((IMixinTransformer) environment.getActiveTransformer()).couldTransformClass(environment, MixinBooterPlugin.class.getName());
+
         ModDiscoverer.discover();
         this.registerCoremodsRescuer();
     }
