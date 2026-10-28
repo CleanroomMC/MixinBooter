@@ -121,6 +121,7 @@ public final class FBMod {
         logger().info("Enabling {} support, depended on by {}{}.", ID, dependents.stream()
                         .map(File::getName)
                         .collect(Collectors.toList()), apiUsed ? " and coremods calling its API" : "");
+        MixinSquared.install();
         for (String configuration : removals) {
             logger().info("Blacklisting {} as it was requested to be removed.", configuration);
             Config.blacklist(configuration);
