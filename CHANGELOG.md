@@ -1,5 +1,19 @@
 # Changelog
 
+## [12.1] - 2026-10-28
+
+### Added
+- Redirects for mods that use FermiumBooter's included MixinSquared, to use CleanMix 0.9.0's MixinEdits API
+
+### Changed
+- Mod discovery is about 4 times faster, after properly benchmarking & diagnostics
+  - Skips more commonly shaded libraries, such as Minecraft, Forge, Netty and Apache's
+  - Jars are scanned on up to 3 threads, one more for every 32 jars
+  - Classpath jars are only scanned in the dev environment
+- `fermiumbooter`'s `@MixinConfig` classes are found during mod discovery, so jars are no longer read a second time for them
+- Updated CleanMix to 0.9.0
+- Updated MixinExtras, fixes a method expectation mismatch
+
 ## [12.0] - 2026-10-26
 
 ### Added

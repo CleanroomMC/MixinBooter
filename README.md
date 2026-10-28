@@ -1,7 +1,7 @@
 # MixinBooter
 ### Allows any mixins that work on mods to work effortlessly on 1.8 - 1.12.2
 
-- Current Mixin Version: [CleanMix 0.7.3 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
+- Current Mixin Version: [CleanMix 0.9.0 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
 
 - Current MixinExtra Version: [0.5.6 by CleanroomMC](https://github.com/CleanroomMC/MixinExtras)
 
@@ -30,6 +30,8 @@
 
 - As of 11.12, MixinBooter uses [CleanroomMC's own MixinExtras fork](https://github.com/CleanroomMC/MixinExtras)
 
+- As of 12.0, MixinBooter includes FermiumBooter and activates when there is a mod that depends on its internals. It is much more optimized
+
 ### For Developers ~ Getting Started:
 
 1. Add CleanroomMC's repository and depend on MixinBooter's maven entry:
@@ -41,7 +43,7 @@ repositories {
 }
 
 dependencies {
-    def mixin = 'zone.rong:mixinbooter:12.0'
+    def mixin = 'zone.rong:mixinbooter:12.1'
     
     implementation (mixin) {
         transitive = false
