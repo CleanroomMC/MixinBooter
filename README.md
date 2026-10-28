@@ -3,7 +3,7 @@
 
 - Current Mixin Version: [CleanMix 0.7.3 by CleanroomMC, a fork of SpongePowered/Fabric Mixin (0.8.7)](https://github.com/CleanroomMC/CleanMix)
 
-- Current MixinExtra Version: [0.5.5 by CleanroomMC](https://github.com/CleanroomMC/MixinExtras)
+- Current MixinExtra Version: [0.5.6 by CleanroomMC](https://github.com/CleanroomMC/MixinExtras)
 
 ### Pseudo-Changelog:
 
