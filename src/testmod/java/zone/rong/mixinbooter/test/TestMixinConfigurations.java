@@ -8,7 +8,7 @@ import zone.rong.mixinbooter.util.MixinConfiguration.Dependency;
 @Config(modid = TestMod.MOD_ID, name = TestMod.MOD_ID + "_configurations")
 public class TestMixinConfigurations {
 
-    @MixinConfiguration(name = "mixin.configuration_test.json", depends = @Dependency(modid = "jei", version = "[4.0,)"))
+    @MixinConfiguration(name = "mixin.configuration_test.json", depends = @Dependency(modid = "jei", version = "[4.0,)", crash = false))
     public static boolean configurationTest = true;
 
     @MixinConfiguration(name = "mixin.configuration_disabled_test.json")

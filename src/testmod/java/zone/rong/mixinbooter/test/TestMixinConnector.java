@@ -21,7 +21,7 @@ public class TestMixinConnector implements IMixinConnector {
                 .register();
         // mixin.conditional_disabled_test.json does not exist, so adding it shows up as a missing config in the log
         ConditionalMixin.of("mixin.conditional_disabled_test.json")
-                .conflicts("jei").because("Expected to be disabled")
+                .conflicts("mixinbooter").because("Expected to be disabled")
                 .register();
     }
 
