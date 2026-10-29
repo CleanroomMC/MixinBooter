@@ -30,7 +30,7 @@
 
 - As of 11.12, MixinBooter uses [CleanroomMC's own MixinExtras fork](https://github.com/CleanroomMC/MixinExtras)
 
-- As of 12.0, MixinBooter includes FermiumBooter and activates when there is a mod that depends on its internals. It is much more optimized
+- As of 12.0, MixinBooter includes FermiumBooter and activates when there is a mod that depends on its internals. It is much more optimized and uses CleanMix's modern APIs instead.
 
 ### For Developers ~ Getting Started:
 
@@ -43,7 +43,7 @@ repositories {
 }
 
 dependencies {
-    def mixin = 'zone.rong:mixinbooter:12.1'
+    def mixin = 'zone.rong:mixinbooter:12.2'
     
     implementation (mixin) {
         transitive = false

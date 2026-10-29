@@ -1,5 +1,10 @@
 # Changelog
 
+## [12.2] - 2026-10-29
+
+### Fixed
+- NoClassDefFoundError for I18n when mods declare remote version ranges
+
 ## [12.1] - 2026-10-28
 
 ### Added
