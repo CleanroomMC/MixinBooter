@@ -268,7 +268,7 @@ tasks.register('modJar', Jar) {
 
 tasks.named('reobfJar').configure {
     inputJar.set(tasks.named('modJar', Jar).flatMap { it.archiveFile })
-    archiveBaseName.set("!${project.base.archivesName.get()}")
+    archiveBaseName.set("000${project.base.archivesName.get()}")
 }
 
 tasks.named('sourcesJar', Jar).configure {
