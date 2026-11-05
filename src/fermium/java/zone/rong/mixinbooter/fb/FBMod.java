@@ -98,15 +98,11 @@ public final class FBMod {
     // FB added every mod jar to the classloader so early mixins could target mod classes.
     // CleanMix only resolves targets once they are transformed, so that is not needed here.
     public static void applyEarly() {
-        boolean superseded = AVAILABLE && ModDiscoverer.isModPresent(ID);
-        if (superseded) {
-            logger().error("{} is superseded by {} and has to be removed.", ModDiscoverer.getModSources(ID), Tags.MOD_NAME);
-        }
         if (AVAILABLE) {
             scan();
         }
         decided = true;
-        if (isEnabled() || superseded) {
+        if (isEnabled() || AVAILABLE && ModDiscoverer.isModPresent(ID)) {
             FMLInjectionData.containers.add(FBModContainer.class.getName());
         }
         if (!isEnabled()) {

@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+@Deprecated
 public abstract class FermiumJarScanner {
 
     // Some mods read this reflectively despite it being internal

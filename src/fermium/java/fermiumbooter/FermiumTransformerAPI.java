@@ -4,6 +4,7 @@ import org.spongepowered.asm.service.MixinService;
 import zone.rong.mixinbooter.Tags;
 
 // Blocking other transformers is not supported, calls are for ABI compatibility only
+@Deprecated
 public abstract class FermiumTransformerAPI {
 
     public static void blockTransformer(String name) {

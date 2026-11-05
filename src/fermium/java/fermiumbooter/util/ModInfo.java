@@ -4,6 +4,7 @@ import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 
 // Internal to the standalone mod, yet some mods read these fields directly
+@Deprecated
 public class ModInfo {
 
     public final String modId;

@@ -5,6 +5,8 @@
 
 - Current MixinExtra Version: [0.5.6 by CleanroomMC](https://github.com/CleanroomMC/MixinExtras)
 
+- Current FermiumBooter Version: [1.6.3 (Commit 720bc7b) by FermiumModding](https://github.com/FermiumModding/FermiumBooter/commit/720bc7bd41651b4c1ac427c4990088dfdd9969f0)
+
 ### Pseudo-Changelog:
 
 - As of 4.2, MixinBooter's API has changed and ***all mods*** that uses mixins are encouraged to depend on MixinBooter, even those that mixin into vanilla/forge/library classes. To avoid mixin version mismatches with mods crashing trying to implement modded mixins (looking at you VanillaFix). Thanks to [@embeddedt](https://github.com/embeddedt) recommending and helping me introduce this change!
@@ -43,7 +45,7 @@ repositories {
 }
 
 dependencies {
-    def mixin = 'zone.rong:mixinbooter:12.2'
+    def mixin = 'zone.rong:mixinbooter:12.3'
     
     implementation (mixin) {
         transitive = false
