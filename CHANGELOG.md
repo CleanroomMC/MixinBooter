@@ -3,7 +3,7 @@
 ## [12.3] - 2026-11-05
 
 ### Added
-- @Deprecated to ABI compatibility shim classes
+- Deprecated annotation to ABI compatibility shim classes
 - New shims introduced
 - Explicit licensing and credit to FB
 
