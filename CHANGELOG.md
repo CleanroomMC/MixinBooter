@@ -1,5 +1,10 @@
 # Changelog
 
+## [12.4] - 2026-11-17
+
+### Fixed
+- Amended proper file prefix back
+
 ## [12.3] - 2026-11-05
 
 ### Added
