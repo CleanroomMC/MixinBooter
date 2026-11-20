@@ -64,9 +64,10 @@ tasks.injectTags.configure {
 
 configurations {
     mod
+    shade
     maven
     testmodMod // real mod jars dropped into testmod/run/mods for runTestClient
-    implementation.extendsFrom mod
+    implementation.extendsFrom mod, shade
 }
 
 sourceSets {
@@ -112,6 +113,10 @@ dependencies {
     mod mixinextras
     mod 'org.jetbrains:intellij-fernflower:1.2.1.16'
     // mod 'net.fabricmc:fabric-fernflower:2.0.0'
+
+    shade ('org.apache.maven:maven-artifact:3.5.3') {
+        transitive = false
+    }
 
     maven (cleanmix) {
         transitive = false
@@ -236,9 +241,11 @@ tasks.named('jar', Jar) {
 tasks.named('shadowJar') {
     group 'build'
     archiveClassifier.set('')
-    configurations = [project.configurations.mod]
+    configurations = [project.configurations.mod, project.configurations.shade]
     mergeServiceFiles()
-    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/MANIFEST.MF', 'module-info.class', '**/LICENSE*'
+    relocate 'org.apache.maven.artifact.versioning', 'zone.rong.mixinbooter.shadow.versioning'
+    exclude { it.path.startsWith('org/apache/maven/') && !it.path.startsWith('org/apache/maven/artifact/versioning/') }
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/MANIFEST.MF', 'module-info.class', '**/LICENSE*', 'META-INF/maven/**', 'META-INF/DEPENDENCIES'
     manifest {
         def attribute_map = [:]
         attribute_map['FMLCorePlugin'] = coremod_plugin_name
