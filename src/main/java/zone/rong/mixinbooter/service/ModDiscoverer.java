@@ -150,6 +150,9 @@ public final class ModDiscoverer {
         if (range.equals(version)) {
             return true;
         }
+        if (!range.isEmpty() && range.charAt(0) != '[' && range.charAt(0) != '(') {
+            range = '[' + range + ']';
+        }
         try {
             return VersionRange.createFromVersionSpec(range).containsVersion(new DefaultArtifactVersion(version));
         } catch (InvalidVersionSpecificationException e) {
