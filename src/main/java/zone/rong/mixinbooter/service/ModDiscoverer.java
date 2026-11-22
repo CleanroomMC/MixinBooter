@@ -690,13 +690,21 @@ public final class ModDiscoverer {
 
     // Mods declare this in @Mod as required-after:id, after:id or even required:id, and in mcmod.info as id@range.
     // The range is not checked, some mods put the CurseForge project id there in place of a version...
+    // before:id only orders the mod ahead of id, it does not use it
     private static void addDependencies(String dependencies, Set<String> modIds) {
         if (dependencies == null) {
             return;
         }
         for (String dependency : dependencies.split("[;,]")) {
+            dependency = dependency.trim();
+            if (dependency.startsWith("before:")) {
+                continue;
+            }
             int at = dependency.indexOf('@');
-            modIds.add(dependency.substring(dependency.indexOf(':') + 1, at == -1 ? dependency.length() : at).trim());
+            String modId = dependency.substring(dependency.indexOf(':') + 1, at == -1 ? dependency.length() : at).trim();
+            if (!modId.isEmpty()) {
+                modIds.add(modId);
+            }
         }
     }
 
