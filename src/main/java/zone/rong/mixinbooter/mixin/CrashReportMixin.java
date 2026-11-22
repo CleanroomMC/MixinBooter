@@ -1,8 +1,9 @@
 package zone.rong.mixinbooter.mixin;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.crash.CrashReport;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,8 +20,12 @@ import java.util.*;
 @Mixin(CrashReport.class)
 public class CrashReportMixin {
 
+    @Shadow @Final private Throwable cause;
+
+    // OptiFine retypes the method's Throwable local to Object on 1.8.x, so the field is read instead
     @Inject(method = "getCauseStackTraceOrString", at = @At("RETURN"), cancellable = true)
-    private void afterStackTracePopulation(CallbackInfoReturnable<String> cir, @Local(ordinal = 0) Throwable throwable) {
+    private void afterStackTracePopulation(CallbackInfoReturnable<String> cir) {
+        Throwable throwable = this.cause;
         Map<String, ClassInfo> classes = new LinkedHashMap<>();
         while (throwable != null) {
             if (throwable instanceof NoClassDefFoundError) {
