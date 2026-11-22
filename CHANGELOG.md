@@ -1,9 +1,26 @@
 # Changelog
 
-## [Unreleased]
+## [12.5] - 2026-11-22
+
+### Fixed
+- Crash reports never listing the mixins applied to classes in the stacktrace
+- Crash report mixin metadata missing on 1.8.x, it is no longer skipped there
+- INIT phase never starting on time on Forge 1.8 to 1.10.2, which lack `FMLLog#log`
+- Bare versions in version ranges (such as `1.2`) matching every version instead of exactly that version
+- `config/mixinbooter.cfg` being read from the working directory instead of the game directory
+- A `mcmod.info` entry without a `modid` dropping every other mod listed in the same file
+- `before:` entries in mod dependencies being treated as the mod needing that mod
+- Early loading and `ClassNotFoundException`s from `maven-artifact`, which is now shaded in
 
 ### Changed
 - Updated CleanMix to 0.10.0
+  - Lower memory usage, `ClassInfo` objects are smaller and refmap strings are deduplicated and interned
+  - Less work per class transform, configs for later phases are no longer prepared early
+  - Mixin hotswapping works again
+  - A mixin config that throws while preparing is dropped instead of crashing the game
+  - Config sources that are not jars no longer crash
+  - Fixed a race between phase changes and class transformation on other threads
+  - Ported upstream fixes for generic signatures with bounded type parameters and nested arrays
 
 ## [12.4] - 2026-11-17
 
