@@ -32,7 +32,7 @@ public class CrashReportMixin {
             StackTraceElement[] stacktrace = throwable.getStackTrace();
             for (StackTraceElement stackTraceElement : stacktrace) {
                 String className = stackTraceElement.getClassName().replace('.', '/');
-                if (classes.containsKey(className)) {
+                if (!classes.containsKey(className)) {
                     ClassInfo classInfo = ClassInfo.fromCache(className);
                     while (classInfo != null) {
                         classes.put(className, classInfo);
