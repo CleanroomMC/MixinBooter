@@ -1,5 +1,6 @@
 package zone.rong.mixinbooter;
 
+import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.common.config.Configuration;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.transformer.Config;
@@ -24,7 +25,7 @@ public final class MixinBooterConfig {
     static void load() {
         ILogger logger = MixinService.getService().getLogger(Tags.MOD_NAME);
         try {
-            Configuration config = new Configuration(new File("config", Tags.MOD_ID + ".cfg"));
+            Configuration config = new Configuration(new File(Launch.minecraftHome, "config/" + Tags.MOD_ID + ".cfg"));
             config.load();
 
             String[] blacklistedConfigs = config.getStringList("blacklistedConfigs", Configuration.CATEGORY_GENERAL,
