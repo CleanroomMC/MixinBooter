@@ -650,7 +650,11 @@ public final class ModDiscoverer {
             for (JsonElement element : mods) {
                 if (element.isJsonObject()) {
                     JsonObject mod = element.getAsJsonObject();
-                    String id = mod.get("modid").getAsString();
+                    JsonElement modid = mod.get("modid");
+                    if (modid == null || !modid.isJsonPrimitive()) {
+                        continue;
+                    }
+                    String id = modid.getAsString();
                     ids.add(id);
                     if (mod.has("name")) {
                         scanned.declared(id).name = mod.get("name").getAsString();
