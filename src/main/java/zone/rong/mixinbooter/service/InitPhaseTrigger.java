@@ -24,44 +24,59 @@ public final class InitPhaseTrigger implements InvocationHandler {
 
     private static final String DEOBF_TWEAKER = "net.minecraftforge.fml.common.launcher.FMLDeobfTweaker";
     private static final String FML_LOG = "net.minecraftforge.fml.common.FMLLog";
+    // Forge before 1.11.2 logs it through FMLRelaunchLog.fine, which uses FMLRelaunchLog#log's own logger
+    private static final String RELAUNCH_LOG = "net.minecraftforge.fml.relauncher.FMLRelaunchLog";
     private static final String MESSAGE = "Validating minecraft";
 
     private static InitPhaseTrigger installed;
 
     private final Field field;
+    private final Object owner;
     private final Logger delegate;
+    private final String target;
 
     private boolean fired;
 
-    private InitPhaseTrigger(Field field, Logger delegate) {
+    private InitPhaseTrigger(Field field, Object owner, Logger delegate, String target) {
         this.field = field;
+        this.owner = owner;
         this.delegate = delegate;
+        this.target = target;
     }
 
     static void install() {
         if (installed != null) {
             return;
         }
+        String target = FML_LOG + "#log";
         try {
             ClassLoader loader = Launch.classLoader.loadClass(DEOBF_TWEAKER).getClassLoader();
-            Field field = Class.forName(FML_LOG, true, loader).getDeclaredField("log");
-
-            Field modifiers = Field.class.getDeclaredField("modifiers");
-            modifiers.setAccessible(true);
-            modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+            Field field;
+            Object owner = null;
+            try {
+                field = Class.forName(FML_LOG, true, loader).getDeclaredField("log");
+                Field modifiers = Field.class.getDeclaredField("modifiers");
+                modifiers.setAccessible(true);
+                modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+            } catch (NoSuchFieldException e) {
+                target = RELAUNCH_LOG + "#log.myLog";
+                Class<?> relaunchLog = Class.forName(RELAUNCH_LOG, true, loader);
+                owner = relaunchLog.getField("log").get(null);
+                field = relaunchLog.getDeclaredField("myLog");
+            }
             field.setAccessible(true);
 
-            Logger delegate = (Logger) field.get(null);
+            Logger delegate = (Logger) field.get(owner);
             if (delegate == null) {
-                logger().warn("'{}#log' is null, the INIT phase will not begin until the DEFAULT transition.", FML_LOG);
+                logger().warn("'{}' is null, the INIT phase will not begin until the DEFAULT transition.", target);
                 return;
             }
-            InitPhaseTrigger trigger = new InitPhaseTrigger(field, delegate);
-            setStatic(field, Proxy.newProxyInstance(Logger.class.getClassLoader(), new Class<?>[] { Logger.class }, trigger));
+            InitPhaseTrigger trigger = new InitPhaseTrigger(field, owner, delegate, target);
+            set(field, owner, Proxy.newProxyInstance(Logger.class.getClassLoader(), new Class<?>[] { Logger.class }, trigger));
             installed = trigger;
-            logger().debug("Hooked '{}#log' as defined by {}, the INIT phase will begin within FMLDeobfTweaker.", FML_LOG, loader);
+            logger().debug("Hooked '{}' as defined by {}, the INIT phase will begin within FMLDeobfTweaker.", target, loader);
         } catch (Throwable t) {
-            logger().warn("Unable to hook '{}#log', the INIT phase will not begin until the DEFAULT transition.", FML_LOG, t);
+            logger().warn("Unable to hook '{}', the INIT phase will not begin until the DEFAULT transition.", target, t);
         }
     }
 
@@ -72,19 +87,20 @@ public final class InitPhaseTrigger implements InvocationHandler {
         }
         installed = null;
         if (!trigger.fired) {
-            logger().warn("'{}' was never seen on '{}#log' ({}), so INIT-phase configs were only staged at the DEFAULT transition",
-                    MESSAGE, FML_LOG, trigger.delegate.getClass().getName());
+            logger().warn("'{}' was never seen on '{}' ({}), so INIT-phase configs were only staged at the DEFAULT transition",
+                    MESSAGE, trigger.target, trigger.delegate.getClass().getName());
         }
         try {
-            setStatic(trigger.field, trigger.delegate);
+            set(trigger.field, trigger.owner, trigger.delegate);
         } catch (Throwable t) {
-            logger().warn("Unable to restore '{}#log', FML logging remains proxied.", FML_LOG, t);
+            logger().warn("Unable to restore '{}', FML logging remains proxied.", trigger.target, t);
         }
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        if (!this.fired && args != null && args.length > 0 && MESSAGE.equals(args[0]) && "debug".equals(method.getName())) {
+        // debug(message) from 1.11.2 on, log(Level.DEBUG, message) before
+        if (!this.fired && args != null && (args.length > 0 && MESSAGE.equals(args[0]) || args.length > 1 && MESSAGE.equals(args[1]))) {
             this.fired = true;
             IMixinService service = MixinService.getService();
             if (service instanceof MixinBooterService) {
@@ -99,9 +115,9 @@ public final class InitPhaseTrigger implements InvocationHandler {
         }
     }
 
-    private static void setStatic(Field field, Object value) throws Throwable {
-        field.set(null, value);
-        if (field.get(null) != value) {
+    private static void set(Field field, Object owner, Object value) throws Throwable {
+        field.set(owner, value);
+        if (field.get(owner) != value) {
             throw new IllegalStateException("Unable to write '" + field.getDeclaringClass().getName() + "#" + field.getName() + "'");
         }
     }
