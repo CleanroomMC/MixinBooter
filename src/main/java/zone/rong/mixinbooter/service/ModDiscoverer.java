@@ -252,14 +252,9 @@ public final class ModDiscoverer {
             return;
         }
         Method loadCoreMod;
-//        Field loadPlugins, location;
         try {
             loadCoreMod = CoreModManager.class.getDeclaredMethod("loadCoreMod", LaunchClassLoader.class, String.class, File.class);
             loadCoreMod.setAccessible(true);
-//            loadPlugins = CoreModManager.class.getDeclaredField("loadPlugins");
-//            loadPlugins.setAccessible(true);
-//            location = Class.forName("net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper", true, Launch.classLoader).getDeclaredField("location")
-//            location.setAccessible(true);
         } catch (Throwable t) {
             LOGGER.error("Unable to access crucial internals. Coremods declared alongside a TweakClass will not be loaded.", t);
             return;
@@ -640,7 +635,7 @@ public final class ModDiscoverer {
      * Logs if a mod jar bundles its own Mixin engine of any fork variety.
      */
     private static void checkIfJarBundlesMixin(File jar, JarFile jarFile, Set<String> modIds) {
-        if (modIds.isEmpty() || modIds.contains("mixinbooter")) {
+        if (modIds.isEmpty() || modIds.contains(Tags.MOD_ID)) {
             return;
         }
         if (jarFile.getEntry("org/spongepowered/asm/launch/MixinBootstrap.class") != null) {
